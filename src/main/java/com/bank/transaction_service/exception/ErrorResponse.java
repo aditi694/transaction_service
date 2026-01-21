@@ -1,16 +1,18 @@
 package com.bank.transaction_service.exception;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Getter
+@Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
-public class ApiErrorResponse {
-
+public class ErrorResponse {
     private String message;
     private String errorCode;
-    private int status;
     private LocalDateTime timestamp;
 }

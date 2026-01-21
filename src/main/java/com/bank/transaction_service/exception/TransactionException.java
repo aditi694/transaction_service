@@ -1,81 +1,60 @@
 package com.bank.transaction_service.exception;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 public class TransactionException extends RuntimeException {
 
     private final String errorCode;
-    private final HttpStatus status;
 
-    private TransactionException(
-            String message,
-            String errorCode,
-            HttpStatus status
-    ) {
+    public TransactionException(String message, String errorCode) {
         super(message);
         this.errorCode = errorCode;
-        this.status = status;
     }
 
-    /* ================= GENERIC ================= */
-
-    public static TransactionException badRequest(String msg) {
-        return new TransactionException(
-                msg,
-                "BAD_REQUEST",
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
-    public static TransactionException unauthorized() {
-        return new TransactionException(
-                "Unauthorized access",
-                "UNAUTHORIZED",
-                HttpStatus.UNAUTHORIZED
-        );
-    }
-
-    public static TransactionException forbidden(String msg) {
-        return new TransactionException(
-                msg,
-                "FORBIDDEN",
-                HttpStatus.FORBIDDEN
-        );
-    }
-
-    /* ================= TRANSACTION ================= */
+    // Factory methods for common exceptions
 
     public static TransactionException insufficientBalance() {
         return new TransactionException(
-                "Insufficient balance",
-                "INSUFFICIENT_BALANCE",
-                HttpStatus.BAD_REQUEST
+                "Insufficient balance in account",
+                "TXN_001"
         );
+    }
+
+    public static TransactionException badRequest(String message) {
+        return new TransactionException(message, "TXN_002");
     }
 
     public static TransactionException transactionNotFound() {
         return new TransactionException(
                 "Transaction not found",
-                "TRANSACTION_NOT_FOUND",
-                HttpStatus.NOT_FOUND
+                "TXN_003"
         );
     }
 
-    public static TransactionException limitExceeded() {
+    public static TransactionException limitExceeded(String message) {
+        return new TransactionException(message, "TXN_004");
+    }
+
+    public static TransactionException unauthorized(String message) {
+        return new TransactionException(message, "TXN_005");
+    }
+
+    public static TransactionException externalServiceError(String message) {
+        return new TransactionException(message, "TXN_006");
+    }
+
+    public static TransactionException accountNotFound() {
         return new TransactionException(
-                "Transaction limit exceeded",
-                "LIMIT_EXCEEDED",
-                HttpStatus.BAD_REQUEST
+                "Account not found",
+                "TXN_007"
         );
     }
 
-    public static TransactionException fraudDetected() {
+    public static TransactionException invalidBeneficiary() {
         return new TransactionException(
-                "Transaction blocked due to suspected fraud",
-                "FRAUD_DETECTED",
-                HttpStatus.FORBIDDEN
+                "Invalid or unverified beneficiary",
+                "TXN_008"
         );
     }
 }

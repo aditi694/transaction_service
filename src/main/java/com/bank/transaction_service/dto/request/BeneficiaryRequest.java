@@ -7,10 +7,9 @@ import java.util.UUID;
 @Data
 public class BeneficiaryRequest {
 
-    private UUID customerId;
-    private String accountNumber;          // Customer account
+    private String customerId;   // ✅ STRING
+    private String accountNumber;
     private String beneficiaryName;
     private String beneficiaryAccount;
     private String ifscCode;
-    private String branchName;
 }

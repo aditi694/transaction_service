@@ -11,8 +11,6 @@ import java.security.Key;
 import java.security.KeyRep;
 import java.util.UUID;
 
-import static java.security.KeyRep.Type.SECRET;
-
 @Component
 public class JwtUtil {
 
@@ -27,11 +25,12 @@ public class JwtUtil {
     }
 
     public AuthUser parse(String token) {
-
-        Claims claims = Jwts.parser()
-                .setSigningKey(String.valueOf(KeyRep.Type.SECRET))
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)   // 🔥 SAME secret as Account Service
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
+
 
         UUID customerId = UUID.fromString(claims.get("customerId", String.class));
         String role = claims.get("role", String.class);

@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionQueryServiceImpl implements TransactionQueryService {
@@ -21,18 +23,19 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
             String accountNumber, int limit, int page) {
 
         var pageable = PageRequest.of(page - 1, limit);
+
         var txPage =
                 transactionRepo.findByAccountNumberOrderByCreatedAtDesc(
                         accountNumber, pageable
                 );
 
-        List<TransactionSummary> data =
+        List<TransactionResponse> data =
                 txPage.getContent().stream()
-                        .map(tx -> TransactionSummary.builder()
+                        .map(tx -> TransactionResponse.builder()
                                 .transactionId(tx.getTransactionId())
-                                .amount(tx.getTotalAmount())
                                 .type(tx.getTransactionType().name())
                                 .status(tx.getStatus().name())
+                                .amount(tx.getTotalAmount().toString())
                                 .build())
                         .toList();
 
@@ -77,13 +80,32 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
 
         List<Transaction> last5 =
                 transactionRepo
-                        .findTop5ByAccountNumberOrderByCreatedAtDesc(
-                                accountNumber
-                        );
+                        .findTop5ByAccountNumberOrderByCreatedAtDesc(accountNumber);
+
+        List<MiniStatementResponse.MiniTxn> miniTxns =
+                last5.stream()
+                        .map(tx -> MiniStatementResponse.MiniTxn.builder()
+                                .date(tx.getCreatedAt().toLocalDate().toString())
+                                .description(tx.getDescription())
+                                .amount(
+                                        tx.getTransactionType().name().equals("DEBIT")
+                                                ? tx.getTotalAmount().negate()
+                                                : tx.getTotalAmount()
+                                )
+                                .balance(tx.getBalanceAfter())
+                                .build())
+                        .toList();
+
+        BigDecimal currentBalance =
+                last5.isEmpty()
+                        ? BigDecimal.ZERO
+                        : last5.get(0).getBalanceAfter();
 
         return MiniStatementResponse.builder()
                 .accountNumber(accountNumber)
-                .transactions(last5)
+                .currentBalance(currentBalance)
+                .lastTransactions(miniTxns)   // ✅ CORRECT FIELD
                 .build();
     }
+
 }

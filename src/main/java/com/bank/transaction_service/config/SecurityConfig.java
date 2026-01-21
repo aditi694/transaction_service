@@ -13,17 +13,35 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter; // ✅ REQUIRED
+    private final JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm ->
+                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("api/internal/**").permitAll()
+                        // 🔥 INTERNAL - Only for service-to-service (future: add service auth)
+                        .requestMatchers("/api/internal/**").permitAll()
+
+                        // 🔥 ADMIN - Admin approval endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 🔥 CUSTOMER - Customer transactions (requires authentication)
+                        .requestMatchers("/api/customer/**").authenticated()
+                        .requestMatchers("/api/beneficiaries/**").authenticated()
+                        .requestMatchers("/api/transactions/**").authenticated()
+
+                        // ❗ Everything else secured
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

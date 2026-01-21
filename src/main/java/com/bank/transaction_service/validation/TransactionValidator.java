@@ -73,7 +73,7 @@ public final class TransactionValidator {
             LimitUpdateRequest req
     ) {
         if (req.getPerTransactionLimit()
-                .compareTo(req.getDailyTransactionLimit()) > 0) {
+                .compareTo(req.getDailyLimit()) > 0) {
 
             throw TransactionException.badRequest(
                     "Per transaction limit cannot exceed daily limit"

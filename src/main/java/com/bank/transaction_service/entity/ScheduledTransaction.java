@@ -3,6 +3,7 @@ package com.bank.transaction_service.entity;
 import com.bank.transaction_service.dto.request.DebitTransactionRequest;
 import com.bank.transaction_service.enums.Frequency;
 import com.bank.transaction_service.enums.ScheduledStatus;
+import com.bank.transaction_service.enums.TransactionCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -52,7 +53,7 @@ public class ScheduledTransaction {
         return DebitTransactionRequest.builder()
                 .accountNumber(accountNumber)
                 .amount(amount)
-                .category(transactionType)
+                .category(TransactionCategory.valueOf(transactionType))
                 .description(description)
                 .build();
     }

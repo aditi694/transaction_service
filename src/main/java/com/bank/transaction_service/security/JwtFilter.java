@@ -2,13 +2,15 @@ package com.bank.transaction_service.security;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Component
-public class JwtFilter extends GenericFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
@@ -17,19 +19,18 @@ public class JwtFilter extends GenericFilter {
     }
 
     @Override
-    public void doFilter(
-            ServletRequest request,
-            ServletResponse response,
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
             FilterChain chain
-    ) throws IOException, ServletException {
+    ) throws ServletException, IOException {
 
-        HttpServletRequest http = (HttpServletRequest) request;
-        String header = http.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            AuthUser authUser = jwtUtil.parse(token);
 
+            AuthUser authUser = jwtUtil.parse(token);
             SecurityContextHolder.getContext()
                     .setAuthentication(authUser);
         }

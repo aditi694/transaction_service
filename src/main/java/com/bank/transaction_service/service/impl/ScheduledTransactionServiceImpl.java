@@ -34,7 +34,7 @@ public class ScheduledTransactionServiceImpl
         for (ScheduledTransaction st : dueTransactions) {
             try {
                 // reuse normal debit flow
-                transactionService.debit(st.toDebitRequest());
+                transactionService.debit(st.toDebitRequest(), null);
 
                 st.updateNextExecutionDate();
             } catch (Exception e) {
