@@ -18,35 +18,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
 
     private final TransactionRepository transactionRepo;
 
-    @Override
-    public TransactionHistoryResponse getHistory(
-            String accountNumber, int limit, int page) {
 
-        var pageable = PageRequest.of(page - 1, limit);
-
-        var txPage =
-                transactionRepo.findByAccountNumberOrderByCreatedAtDesc(
-                        accountNumber, pageable
-                );
-
-        List<TransactionResponse> data =
-                txPage.getContent().stream()
-                        .map(tx -> TransactionResponse.builder()
-                                .transactionId(tx.getTransactionId())
-                                .type(tx.getTransactionType().name())
-                                .status(tx.getStatus().name())
-                                .amount(tx.getTotalAmount().toString())
-                                .build())
-                        .toList();
-
-        return TransactionHistoryResponse.builder()
-                .success(true)
-                .transactions(data)
-                .total(txPage.getTotalElements())
-                .page(page)
-                .limit(limit)
-                .build();
-    }
 
     @Override
     public TransactionDetailResponse getTransaction(String transactionId) {
@@ -75,6 +47,41 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
                 .build();
     }
 
+
+    @Override
+    public TransactionHistoryResponse getHistory(
+            String accountNumber, int limit, int page) {
+
+        var pageable = PageRequest.of(page - 1, limit);
+
+        var txPage =
+                transactionRepo.findByAccountNumberOrderByCreatedAtDesc(
+                        accountNumber, pageable
+                );
+
+        List<TransactionResponse> data =
+                txPage.getContent().stream()
+                        .map(tx -> TransactionResponse.builder()
+                                .transactionId(tx.getTransactionId())
+                                .date(tx.getCreatedAt().toLocalDate().toString())
+                                .time(tx.getCreatedAt().toLocalTime().toString())
+                                .type(tx.getTransactionType().name())
+                                .category(String.valueOf(tx.getCategory()))
+                                .description(tx.getDescription())
+                                .amount(String.valueOf(tx.getTotalAmount()))
+                                .balanceAfter(tx.getBalanceAfter())
+                                .status(tx.getStatus().name())
+                                .build())
+                        .toList();
+
+        return TransactionHistoryResponse.builder()
+                .success(true)
+                .transactions(data)
+                .total(txPage.getTotalElements())
+                .page(page)
+                .limit(limit)
+                .build();
+    }
     @Override
     public MiniStatementResponse miniStatement(String accountNumber) {
 
@@ -96,15 +103,16 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
                                 .build())
                         .toList();
 
-        BigDecimal currentBalance =
+        BigDecimal balance =
                 last5.isEmpty()
                         ? BigDecimal.ZERO
                         : last5.get(0).getBalanceAfter();
 
         return MiniStatementResponse.builder()
+                .success(true)
                 .accountNumber(accountNumber)
-                .currentBalance(currentBalance)
-                .lastTransactions(miniTxns)   // ✅ CORRECT FIELD
+                .currentBalance(balance)
+                .lastTransactions(miniTxns)
                 .build();
     }
 

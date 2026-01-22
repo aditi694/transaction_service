@@ -10,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 @RestController
 @RequestMapping("/api/beneficiaries")
 @RequiredArgsConstructor
@@ -18,64 +17,60 @@ public class BeneficiaryController {
 
     private final BeneficiaryService beneficiaryService;
 
-    /**
-     * Add new beneficiary - Customer only
-     */
+    // ================= CUSTOMER =================
+
     @PostMapping
     public BeneficiaryResponse add(@RequestBody BeneficiaryRequest request) {
         AuthUser user = getAuthUser();
-
-        // Set customerId from authenticated user
         request.setCustomerId(user.getCustomerId().toString());
-
         return beneficiaryService.add(request);
     }
 
-    /**
-     * List all beneficiaries for logged-in customer
-     */
     @GetMapping
-    public List<BeneficiaryResponse> list() {
+    public List<BeneficiaryResponse> listOwn() {
         AuthUser user = getAuthUser();
         return beneficiaryService.list(user.getCustomerId().toString());
     }
 
-    /**
-     * Verify beneficiary - Can be customer initiated but admin approved
-     * For now, allowing customer to verify
-     */
-    @PostMapping("/{id}/verify")
-    public BeneficiaryResponse verify(@PathVariable String id) {
-        AuthUser user = getAuthUser();
+    // ================= ADMIN =================
 
-        // Optional: Check if this beneficiary belongs to the customer
-        beneficiaryService.verify(id);
-
-        return beneficiaryService.get(id);
+    @GetMapping("/admin/all")
+    public List<BeneficiaryResponse> listAll() {
+        requireAdmin();
+        return beneficiaryService.listAll();
     }
 
-    /**
-     * Admin approval for beneficiary verification (future enhancement)
-     */
+    @GetMapping("/admin/pending")
+    public List<BeneficiaryResponse> pending() {
+        requireAdmin();
+        return beneficiaryService.listPendingApprovals();
+    }
+
     @PostMapping("/admin/{id}/approve")
-    public BeneficiaryResponse adminApprove(@PathVariable String id) {
-        AuthUser user = getAuthUser();
-
-        if (!user.isAdmin()) {
-            throw TransactionException.unauthorized("Admin access required");
-        }
-
-        beneficiaryService.verify(id);
-        return beneficiaryService.get(id);
+    public void approve(@PathVariable String id) {
+        AuthUser admin = requireAdmin();
+        beneficiaryService.adminVerify(id, admin.getCustomerId());
     }
+
+    @PostMapping("/admin/{id}/reject")
+    public void reject(@PathVariable String id) {
+        requireAdmin();
+        beneficiaryService.reject(id);
+    }
+
+    // ================= HELPERS =================
 
     private AuthUser getAuthUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication();
-
-        if (principal instanceof AuthUser) {
-            return (AuthUser) principal;
-        }
-
+        if (principal instanceof AuthUser au) return au;
         throw TransactionException.unauthorized("User not authenticated");
+    }
+
+    private AuthUser requireAdmin() {
+        AuthUser user = getAuthUser();
+        if (!user.isAdmin()) {
+            throw TransactionException.unauthorized("Admin access required");
+        }
+        return user;
     }
 }

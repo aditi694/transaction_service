@@ -8,8 +8,17 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class TransactionResponse {
+
     private String transactionId;
+    private String date;
+    private String time;
+
     private String type;
-    private String status;
+    private String category;
+    private String description;
+
     private String amount;
+    private BigDecimal balanceAfter;
+
+    private String status;
 }

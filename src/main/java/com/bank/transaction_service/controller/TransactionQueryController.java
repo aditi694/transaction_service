@@ -1,32 +1,32 @@
 package com.bank.transaction_service.controller;
 
 import com.bank.transaction_service.dto.response.*;
+import com.bank.transaction_service.exception.TransactionException;
+import com.bank.transaction_service.security.AuthUser;
+import com.bank.transaction_service.service.TransactionQueryService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
 @RestController
 @RequestMapping("/api/customer")
+@RequiredArgsConstructor
 public class TransactionQueryController {
+
+    private final TransactionQueryService queryService;
 
     @GetMapping("/transactions")
     public TransactionHistoryResponse history(
-            @RequestParam String account_number,
+            @RequestParam("account_number") String accountNumber,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "1") int page
     ) {
-        return null;
-    }
-
-    @GetMapping("/transaction/{transactionId}")
-    public TransactionDetailResponse getOne(
-            @PathVariable String transactionId
-    ) {
-        return null;
+        return queryService.getHistory(accountNumber, limit, page);
     }
 
     @GetMapping("/mini-statement")
     public MiniStatementResponse miniStatement(
-            @RequestParam String account_number
+            @RequestParam("account_number") String accountNumber
     ) {
-        return null;
+        return queryService.miniStatement(accountNumber);
     }
 }

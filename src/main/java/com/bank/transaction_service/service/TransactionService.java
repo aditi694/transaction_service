@@ -7,9 +7,9 @@ import com.bank.transaction_service.dto.response.*;
 
 public interface TransactionService {
 
-    DebitTransactionResponse debit(DebitTransactionRequest request, String idempotencyKey);
+    DebitTransactionResponse debit(DebitTransactionRequest request);
 
-    CreditTransactionResponse credit(CreditTransactionRequest request, String idempotencyKey);
+    CreditTransactionResponse credit(CreditTransactionRequest request);
 
-    TransferTransactionResponse transfer(TransferTransactionRequest request, String idempotencyKey);
+    TransferTransactionResponse transfer(TransferTransactionRequest request);
 }

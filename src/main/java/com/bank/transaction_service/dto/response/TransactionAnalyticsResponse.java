@@ -10,15 +10,27 @@ import java.util.List;
 @Data
 @Builder
 public class TransactionAnalyticsResponse {
-    private String month;
-    private BigDecimal totalSpent;
-    private Map<TransactionCategory, BigDecimal> categoryBreakdown;
 
+    private boolean success;
+    private String accountNumber;
+    private String month;
+
+    private Summary summary;
+    private List<CategorySpend> categoryBreakdown;
 
     @Data
     @Builder
-    public static class MerchantSpend {
-        private String name;
+    public static class Summary {
+        private BigDecimal totalDebit;
+        private BigDecimal totalCredit;
+        private BigDecimal netFlow;
+        private long transactionCount;
+    }
+
+    @Data
+    @Builder
+    public static class CategorySpend {
+        private String category;
         private BigDecimal amount;
     }
 }

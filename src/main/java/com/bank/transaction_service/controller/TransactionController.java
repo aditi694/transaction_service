@@ -16,39 +16,32 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
+
+    /**
+     * Debit transaction - Customer only
+     * Idempotency key is auto-generated internally
+     */
     @PostMapping("/debit")
-    public DebitTransactionResponse debit(
-            @RequestBody DebitTransactionRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
-    ) {
-        AuthUser user = getAuthUser();
-
-        // Verify customer owns this account (optional - can be done in service layer)
-        // For now, we'll let service handle it
-
-        return transactionService.debit(request, idempotencyKey);
+    public DebitTransactionResponse debit(@RequestBody DebitTransactionRequest request) {
+        return transactionService.debit(request);
     }
 
+    /**
+     * Credit transaction - Customer only
+     * Idempotency key is auto-generated internally
+     */
     @PostMapping("/credit")
-    public CreditTransactionResponse credit(
-            @RequestBody CreditTransactionRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
-    ) {
-        AuthUser user = getAuthUser();
-        return transactionService.credit(request, idempotencyKey);
+    public CreditTransactionResponse credit(@RequestBody CreditTransactionRequest request) {
+        return transactionService.credit(request);
     }
 
+    /**
+     * Transfer transaction - Customer only
+     * Idempotency key is auto-generated internally
+     */
     @PostMapping("/transfer")
-    public TransferTransactionResponse transfer(
-            @RequestBody TransferTransactionRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
-    ) {
-        AuthUser user = getAuthUser();
-
-        // Customer can only transfer from their own accounts
-        // This validation should happen in service layer with account ownership check
-
-        return transactionService.transfer(request, idempotencyKey);
+    public TransferTransactionResponse transfer(@RequestBody TransferTransactionRequest request) {
+        return transactionService.transfer(request);
     }
 
     private AuthUser getAuthUser() {
@@ -60,4 +53,5 @@ public class TransactionController {
 
         throw TransactionException.unauthorized("User not authenticated");
     }
+
 }

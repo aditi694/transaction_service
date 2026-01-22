@@ -4,5 +4,5 @@ import com.bank.transaction_service.entity.Transaction;
 
 public interface NotificationService {
 
-    void sendTransactionAlert(Transaction transaction);
+    void sendTransactionAlert(String transactionId);
 }

@@ -1,60 +1,73 @@
 package com.bank.transaction_service.exception;
 
+import com.bank.transaction_service.enums.ErrorCode;
 import lombok.Getter;
 
 @Getter
 public class TransactionException extends RuntimeException {
 
-    private final String errorCode;
+    private final ErrorCode errorCode;
 
-    public TransactionException(String message, String errorCode) {
+    private TransactionException(String message, ErrorCode errorCode) {
         super(message);
         this.errorCode = errorCode;
     }
 
-    // Factory methods for common exceptions
+    /* ================= FACTORY METHODS ================= */
 
     public static TransactionException insufficientBalance() {
         return new TransactionException(
                 "Insufficient balance in account",
-                "TXN_001"
+                ErrorCode.INSUFFICIENT_BALANCE
         );
-    }
-
-    public static TransactionException badRequest(String message) {
-        return new TransactionException(message, "TXN_002");
     }
 
     public static TransactionException transactionNotFound() {
         return new TransactionException(
                 "Transaction not found",
-                "TXN_003"
+                ErrorCode.TRANSACTION_NOT_FOUND
+        );
+    }
+
+    public static TransactionException unauthorized(String message) {
+        return new TransactionException(
+                message,
+                ErrorCode.UNAUTHORIZED_ACCESS
         );
     }
 
     public static TransactionException limitExceeded(String message) {
-        return new TransactionException(message, "TXN_004");
+        return new TransactionException(
+                message,
+                ErrorCode.LIMIT_EXCEEDED
+        );
     }
 
-    public static TransactionException unauthorized(String message) {
-        return new TransactionException(message, "TXN_005");
-    }
-
-    public static TransactionException externalServiceError(String message) {
-        return new TransactionException(message, "TXN_006");
+    public static TransactionException badRequest(String message) {
+        return new TransactionException(
+                message,
+                ErrorCode.BAD_REQUEST
+        );
     }
 
     public static TransactionException accountNotFound() {
         return new TransactionException(
                 "Account not found",
-                "TXN_007"
+                ErrorCode.ACCOUNT_NOT_FOUND
         );
     }
 
     public static TransactionException invalidBeneficiary() {
         return new TransactionException(
                 "Invalid or unverified beneficiary",
-                "TXN_008"
+                ErrorCode.INVALID_BENEFICIARY
+        );
+    }
+
+    public static TransactionException externalServiceError(String message) {
+        return new TransactionException(
+                message,
+                ErrorCode.EXTERNAL_SERVICE_ERROR
         );
     }
 }

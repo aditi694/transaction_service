@@ -1,5 +1,6 @@
 package com.bank.transaction_service.exception;
 
+import com.bank.transaction_service.enums.ErrorCode;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,54 +18,53 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTransactionException(
             TransactionException ex
     ) {
-        log.error("Transaction error: {} - {}", ex.getErrorCode(), ex.getMessage());
-
-        ErrorResponse error = ErrorResponse.builder()
-                .message(ex.getMessage())
-                .errorCode(ex.getErrorCode())
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.error("Transaction error [{}]: {}", ex.getErrorCode(), ex.getMessage());
 
         HttpStatus status = switch (ex.getErrorCode()) {
-            case "TXN_005" -> HttpStatus.UNAUTHORIZED;
-            case "TXN_003", "TXN_007" -> HttpStatus.NOT_FOUND;
+            case UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
+            case TRANSACTION_NOT_FOUND, ACCOUNT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case INSUFFICIENT_BALANCE, LIMIT_EXCEEDED, INVALID_BENEFICIARY ->
+                    HttpStatus.BAD_REQUEST;
+            case EXTERNAL_SERVICE_ERROR -> HttpStatus.SERVICE_UNAVAILABLE;
             default -> HttpStatus.BAD_REQUEST;
         };
 
-        return ResponseEntity.status(status).body(error);
+        return ResponseEntity.status(status).body(
+                ErrorResponse.builder()
+                        .message(ex.getMessage())
+                        .errorCode(ex.getErrorCode().name())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 
     @ExceptionHandler(FeignException.class)
-    public ResponseEntity<ErrorResponse> handleFeignException(
-            FeignException ex
-    ) {
-        log.error("External service error: {}", ex.getMessage());
-
-        ErrorResponse error = ErrorResponse.builder()
-                .message("External service error: " + ex.contentUTF8())
-                .errorCode("SVC_ERROR")
-                .timestamp(LocalDateTime.now())
-                .build();
+    public ResponseEntity<ErrorResponse> handleFeignException(FeignException ex) {
+        log.error("Feign error", ex);
 
         return ResponseEntity
-                .status(ex.status())
-                .body(error);
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(
+                        ErrorResponse.builder()
+                                .message("External service unavailable")
+                                .errorCode(ErrorCode.EXTERNAL_SERVICE_ERROR.name())
+                                .timestamp(LocalDateTime.now())
+                                .build()
+                );
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex
-    ) {
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         log.error("Unexpected error", ex);
-
-        ErrorResponse error = ErrorResponse.builder()
-                .message("An unexpected error occurred")
-                .errorCode("INTERNAL_ERROR")
-                .timestamp(LocalDateTime.now())
-                .build();
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error);
+                .body(
+                        ErrorResponse.builder()
+                                .message("Internal server error")
+                                .errorCode(ErrorCode.INTERNAL_ERROR.name())
+                                .timestamp(LocalDateTime.now())
+                                .build()
+                );
     }
 }

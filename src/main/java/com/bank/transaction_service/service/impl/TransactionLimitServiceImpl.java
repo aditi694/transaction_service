@@ -5,38 +5,35 @@ import com.bank.transaction_service.dto.response.TransactionLimitResponse;
 import com.bank.transaction_service.entity.TransactionLimit;
 import com.bank.transaction_service.repository.TransactionLimitRepository;
 import com.bank.transaction_service.service.TransactionLimitService;
-import com.bank.transaction_service.validation.TransactionValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 @Service
 @RequiredArgsConstructor
-public class TransactionLimitServiceImpl
-        implements TransactionLimitService {
+public class TransactionLimitServiceImpl implements TransactionLimitService {
 
     private final TransactionLimitRepository repository;
 
     @Override
-    public TransactionLimitResponse update(
-            String accountNumber,
-            LimitUpdateRequest req) {
+    public TransactionLimitResponse get(String accountNumber) {
 
-        TransactionValidator.validateLimits(req);
-
-        TransactionLimit limit =
-                repository.findById(accountNumber)
-                        .orElse(new TransactionLimit(accountNumber));
-
-        limit.update(req);
-        repository.save(limit);
+        TransactionLimit limit = repository.findByAccountNumber(accountNumber)
+                .orElseGet(() -> repository.save(new TransactionLimit(accountNumber)));
 
         return TransactionLimitResponse.from(limit);
     }
 
     @Override
-    public TransactionLimitResponse get(String accountNumber) {
-        return TransactionLimitResponse.from(
-                repository.findById(accountNumber).orElseThrow()
-        );
+    public TransactionLimitResponse update(
+            String accountNumber,
+            LimitUpdateRequest request
+    ) {
+
+        TransactionLimit limit = repository.findByAccountNumber(accountNumber)
+                .orElseGet(() -> repository.save(new TransactionLimit(accountNumber)));
+
+        limit.update(request);
+        repository.save(limit);
+
+        return TransactionLimitResponse.from(limit);
     }
 }

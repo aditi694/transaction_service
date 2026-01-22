@@ -7,5 +7,5 @@ public enum TransactionCategory {
     TRANSFER,
     BILL,
     SHOPPING,
-    OTHER
+    OTHERS
 }

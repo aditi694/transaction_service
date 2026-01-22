@@ -25,4 +25,8 @@ public interface AccountClient {
 
     @GetMapping("/{accountNumber}/balance")
     BigDecimal getBalance(@PathVariable String accountNumber);
+
+
+    @GetMapping("/{accountNumber}/exists")
+    boolean accountExists(@PathVariable String accountNumber);
 }

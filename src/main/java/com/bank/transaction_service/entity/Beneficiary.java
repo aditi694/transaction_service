@@ -6,7 +6,10 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "beneficiaries")
+@Table(name = "beneficiaries", indexes = {
+        @Index(name = "idx_customer_id", columnList = "customerId"),
+        @Index(name = "idx_account_number", columnList = "accountNumber")
+})
 @Getter
 @Setter
 @Builder
@@ -31,4 +34,10 @@ public class Beneficiary {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 🆕 Track when beneficiary was verified
+    private LocalDateTime verifiedAt;
+
+    // 🆕 Track who verified (admin UUID)
+    private String verifiedBy;
 }

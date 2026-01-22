@@ -14,6 +14,7 @@ import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class AnalyticsServiceImpl implements AnalyticsService {
@@ -29,32 +30,54 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         List<Transaction> transactions =
                 transactionRepository.findByAccountNumberAndMonth(
                         accountNumber,
-                        month.getYear(),
-                        month.getMonthValue()
+                        month.getMonthValue(),
+                        month.getYear()
                 );
 
-        BigDecimal totalSpent = BigDecimal.ZERO;
-        Map<TransactionCategory, BigDecimal> categoryBreakdown = new HashMap<>();
+        BigDecimal totalDebit = BigDecimal.ZERO;
+        BigDecimal totalCredit = BigDecimal.ZERO;
+        Map<String, BigDecimal> categoryMap = new HashMap<>();
 
         for (Transaction tx : transactions) {
 
             if (tx.getTransactionType() == TransactionType.DEBIT ||
                     tx.getTransactionType() == TransactionType.TRANSFER) {
 
-                totalSpent = totalSpent.add(tx.getTotalAmount());
+                totalDebit = totalDebit.add(tx.getTotalAmount());
 
-                categoryBreakdown.merge(
-                        tx.getCategory(),
-                        tx.getTotalAmount(),
-                        BigDecimal::add
-                );
+                String category =
+                        tx.getCategory() == null ? "OTHERS" : tx.getCategory().name();
+
+                categoryMap.merge(category, tx.getTotalAmount(), BigDecimal::add);
+            }
+
+            if (tx.getTransactionType() == TransactionType.CREDIT) {
+                totalCredit = totalCredit.add(tx.getTotalAmount());
             }
         }
 
+        List<TransactionAnalyticsResponse.CategorySpend> breakdown =
+                categoryMap.entrySet().stream()
+                        .map(e -> TransactionAnalyticsResponse.CategorySpend.builder()
+                                .category(e.getKey())
+                                .amount(e.getValue())
+                                .build())
+                        .toList();
+
         return TransactionAnalyticsResponse.builder()
+                .success(true)
+                .accountNumber(accountNumber)
                 .month(month.toString())
-                .totalSpent(totalSpent)
-                .categoryBreakdown(categoryBreakdown)
+                .summary(
+                        TransactionAnalyticsResponse.Summary.builder()
+                                .totalDebit(totalDebit)
+                                .totalCredit(totalCredit)
+                                .netFlow(totalCredit.subtract(totalDebit))
+                                .transactionCount(transactions.size())
+                                .build()
+                )
+                .categoryBreakdown(breakdown)
                 .build();
+
     }
 }

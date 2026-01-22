@@ -13,4 +13,8 @@ public interface CustomerClient {
 
     @GetMapping("/{customerId}/contact")
     String getContact(@PathVariable UUID customerId);
+
+    @GetMapping("/account/{accountNumber}/ifsc")
+    String getIfscByAccount(@PathVariable String accountNumber);
+
 }
