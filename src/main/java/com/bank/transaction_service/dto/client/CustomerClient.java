@@ -1,5 +1,6 @@
 package com.bank.transaction_service.dto.client;
 
+import com.bank.transaction_service.service.impl.BeneficiaryServiceImpl;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,4 +18,6 @@ public interface CustomerClient {
     @GetMapping("/account/{accountNumber}/ifsc")
     String getIfscByAccount(@PathVariable String accountNumber);
 
+    @GetMapping("/bank-branch/{ifscCode}")
+    BeneficiaryServiceImpl.BankBranchInfo getBankBranch(@PathVariable String ifscCode);
 }

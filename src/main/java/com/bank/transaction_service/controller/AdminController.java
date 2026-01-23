@@ -17,10 +17,6 @@ public class AdminController {
 
     private final BeneficiaryService beneficiaryService;
 
-    /**
-     * Admin: Approve/Verify beneficiary
-     * Requires ADMIN role
-     */
     @PostMapping("/beneficiaries/{beneficiaryId}/approve")
     public BeneficiaryResponse approveBeneficiary(@PathVariable String beneficiaryId) {
         AuthUser admin = getAuthUser();
@@ -33,10 +29,6 @@ public class AdminController {
         return beneficiaryService.get(beneficiaryId);
     }
 
-    /**
-     * Admin: View all beneficiaries (across all customers)
-     * Requires ADMIN role
-     */
     @GetMapping("/beneficiaries")
     public List<BeneficiaryResponse> getAllBeneficiaries(
             @RequestParam(required = false) String customerId,
@@ -59,9 +51,6 @@ public class AdminController {
         return beneficiaryService.listAll();
     }
 
-    /**
-     * Admin: Reject beneficiary
-     */
     @PostMapping("/beneficiaries/{beneficiaryId}/reject")
     public BeneficiaryResponse rejectBeneficiary(@PathVariable String beneficiaryId) {
         AuthUser admin = getAuthUser();

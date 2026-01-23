@@ -17,9 +17,6 @@ public class TransactionLimitController {
 
     private final TransactionLimitService limitService;
 
-    /**
-     * Get customer's transaction limits
-     */
     @GetMapping
     public TransactionLimitResponse getLimits(
             @RequestParam String accountNumber
@@ -29,9 +26,6 @@ public class TransactionLimitController {
         return limitService.get(accountNumber);
     }
 
-    /**
-     * Update transaction limits - Customer can update their own limits
-     */
     @PutMapping
     public TransactionLimitResponse updateLimits(
             @RequestParam String accountNumber,

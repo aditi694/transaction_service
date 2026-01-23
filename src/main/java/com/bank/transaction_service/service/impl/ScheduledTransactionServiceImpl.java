@@ -20,9 +20,6 @@ public class ScheduledTransactionServiceImpl
     private final ScheduledTransactionRepository repository;
     private final TransactionService transactionService;
 
-    /**
-     * Runs every day at 2 AM
-     */
     @Override
     @Scheduled(cron = "0 0 2 * * *")
     public void executeScheduledTransactions() {
@@ -33,7 +30,6 @@ public class ScheduledTransactionServiceImpl
 
         for (ScheduledTransaction st : dueTransactions) {
             try {
-                // reuse normal debit flow
                 transactionService.debit(st.toDebitRequest());
 
                 st.updateNextExecutionDate();

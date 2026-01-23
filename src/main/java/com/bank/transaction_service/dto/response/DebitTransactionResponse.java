@@ -6,9 +6,6 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// ============================================
-// DEBIT TRANSACTION RESPONSE (Enhanced)
-// ============================================
 @Data
 @Builder
 public class DebitTransactionResponse {

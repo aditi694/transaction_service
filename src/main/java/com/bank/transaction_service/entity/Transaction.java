@@ -21,9 +21,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Transaction {
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY) // 🔥 THIS WAS MISSING
-//    private Long id;
+
     @Id
     @Column(name = "transaction_id", length = 30)
     private String transactionId;

@@ -9,8 +9,6 @@ import java.util.UUID;
 
 @Component
 public class JwtUtil {
-
-    // 🔥 SAME SECRET IN ALL SERVICES
     private static final String SECRET = "BANKING_UNIFIED_SECRET_KEY_32_CHARACTERS_MINIMUM_LENGTH_2026";
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 

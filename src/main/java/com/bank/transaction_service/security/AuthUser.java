@@ -21,7 +21,6 @@ public class AuthUser extends AbstractAuthenticationToken {
     }
 
     private static Collection<? extends GrantedAuthority> getAuthorities(String role) {
-        // Ensure role has ROLE_ prefix for Spring Security
         String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
         return List.of(new SimpleGrantedAuthority(authority));
     }

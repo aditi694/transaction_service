@@ -10,7 +10,6 @@ public final class TransactionValidator {
 
     private TransactionValidator() {}
 
-    /* ================= COMMON ================= */
 
     public static void validateAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.isBlank()) {
@@ -28,7 +27,6 @@ public final class TransactionValidator {
         }
     }
 
-    /* ================= DEBIT / CREDIT ================= */
 
     public static void validateBalance(
             BigDecimal balance,
@@ -39,7 +37,7 @@ public final class TransactionValidator {
         }
     }
 
-    /* ================= TRANSFER ================= */
+
 
     public static void validateTransfer(
             String fromAccount,
@@ -51,8 +49,6 @@ public final class TransactionValidator {
             );
         }
     }
-
-    /* ================= BENEFICIARY ================= */
 
     public static void validateBeneficiary(
             BeneficiaryRequest req
@@ -67,7 +63,6 @@ public final class TransactionValidator {
         }
     }
 
-    /* ================= LIMITS ================= */
 
     public static void validateLimits(
             LimitUpdateRequest req

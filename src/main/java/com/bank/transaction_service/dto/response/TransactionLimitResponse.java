@@ -20,8 +20,7 @@ public class TransactionLimitResponse {
     private BigDecimal atmLimit;
     private BigDecimal onlineShoppingLimit;
 
-//    private boolean internationalEnabled;
-//    private boolean contactlessEnabled;
+
 
     private LocalDateTime updatedAt;
 
@@ -33,8 +32,6 @@ public class TransactionLimitResponse {
                 .monthlyLimit(limit.getMonthlyLimit())
                 .atmLimit(limit.getAtmLimit())
                 .onlineShoppingLimit(limit.getOnlineShoppingLimit())
-//                .internationalEnabled(limit.isInternationalEnabled())
-//                .contactlessEnabled(limit.isContactlessEnabled())
                 .updatedAt(limit.getUpdatedAt())
                 .build();
     }

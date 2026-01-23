@@ -35,9 +35,6 @@ public class Beneficiary {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 🆕 Track when beneficiary was verified
     private LocalDateTime verifiedAt;
-
-    // 🆕 Track who verified (admin UUID)
     private String verifiedBy;
 }

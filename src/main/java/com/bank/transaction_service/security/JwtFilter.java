@@ -26,7 +26,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Allow internal endpoints without token
         if (path.startsWith("/api/internal/")) {
             chain.doFilter(request, response);
             return;

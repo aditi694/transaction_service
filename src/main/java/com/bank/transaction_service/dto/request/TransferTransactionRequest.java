@@ -11,9 +11,9 @@ public class TransferTransactionRequest {
     private String fromAccount;
     private String toAccount;
     private BigDecimal amount;
-//    private BigDecimal charges;
     private String transferType;
     private String description;
+
     private BigDecimal calculateCharges(TransferMode mode, BigDecimal amount) {
         return switch (mode) {
             case IMPS -> BigDecimal.valueOf(5);

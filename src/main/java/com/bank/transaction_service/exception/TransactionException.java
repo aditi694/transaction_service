@@ -13,8 +13,6 @@ public class TransactionException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    /* ================= FACTORY METHODS ================= */
-
     public static TransactionException insufficientBalance() {
         return new TransactionException(
                 "Insufficient balance in account",

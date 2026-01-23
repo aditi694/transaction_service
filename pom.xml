@@ -101,8 +101,13 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-openfeign-dependencies</artifactId>
+            <version>4.1.1</version>
+        </dependency>
 
-	</dependencies>
+    </dependencies>
 
 	<!-- ================= SPRING CLOUD BOM ================= -->
 	<dependencyManagement>

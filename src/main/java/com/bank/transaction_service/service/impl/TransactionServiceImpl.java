@@ -36,15 +36,13 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountClient accountClient;
     private final NotificationService notificationService;
 
-    /* ================= DEBIT ================= */
 
     @Override
     public DebitTransactionResponse debit(DebitTransactionRequest req) {
 
-        // 🔥 Auto-generate idempotency key
         String idempotencyKey = generateIdempotencyKey("DEBIT", req.getAccountNumber());
 
-        // Check idempotency
+
         var existing = transactionRepo.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Duplicate debit request detected: {}", idempotencyKey);
@@ -56,22 +54,18 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionValidator.validateAccountNumber(req.getAccountNumber());
         TransactionValidator.validateAmount(req.getAmount());
 
-        // Verify account exists and belongs to customer
         verifyAccountOwnership(user.getCustomerId(), req.getAccountNumber());
 
-        // Check transaction limits
         checkTransactionLimits(req.getAccountNumber(), req.getAmount());
 
         BigDecimal balance = fetchBalance(req.getAccountNumber());
         TransactionValidator.validateBalance(balance, req.getAmount());
 
-        // Execute debit
         executeDebit(req.getAccountNumber(), req.getAmount());
 
         BigDecimal newBalance = balance.subtract(req.getAmount());
 
         Transaction tx = Transaction.builder()
-//                .id(UUID.randomUUID())
                 .transactionId(generateTxnId())
                 .accountNumber(req.getAccountNumber())
                 .customerId(user.getCustomerId())
@@ -94,7 +88,6 @@ public class TransactionServiceImpl implements TransactionService {
         return buildDebitResponse(tx);
     }
 
-    /* ================= CREDIT ================= */
 
     @Override
     public CreditTransactionResponse credit(CreditTransactionRequest req) {
@@ -118,7 +111,6 @@ public class TransactionServiceImpl implements TransactionService {
         executeCredit(req.getAccountNumber(), req.getAmount());
 
         Transaction tx = Transaction.builder()
-//                .id(UUID.randomUUID())
                 .transactionId(generateTxnId())
                 .accountNumber(req.getAccountNumber())
                 .customerId(user.getCustomerId())
@@ -141,7 +133,6 @@ public class TransactionServiceImpl implements TransactionService {
         return buildCreditResponse(tx);
     }
 
-    /* ================= TRANSFER ================= */
 
     @Override
     public TransferTransactionResponse transfer(TransferTransactionRequest req) {
@@ -159,13 +150,10 @@ public class TransactionServiceImpl implements TransactionService {
         TransactionValidator.validateTransfer(req.getFromAccount(), req.getToAccount());
         TransactionValidator.validateAmount(req.getAmount());
 
-        // 🔥 Verify sender account ownership
         verifyAccountOwnership(user.getCustomerId(), req.getFromAccount());
 
-        // 🔥 Verify receiver account exists
         verifyAccountExists(req.getToAccount());
 
-        // Calculate charges
         BigDecimal charges = calculateTransferCharges(
                 TransferMode.valueOf(req.getTransferType()),
                 req.getAmount()
@@ -177,12 +165,10 @@ public class TransactionServiceImpl implements TransactionService {
         BigDecimal senderBalance = fetchBalance(req.getFromAccount());
         TransactionValidator.validateBalance(senderBalance, totalAmount);
 
-        // Execute transfer
         executeDebit(req.getFromAccount(), totalAmount);
         executeCredit(req.getToAccount(), req.getAmount());
 
         Transaction tx = Transaction.builder()
-//                .id(UUID.randomUUID())
                 .transactionId(generateTxnId())
                 .accountNumber(req.getFromAccount())
                 .customerId(user.getCustomerId())
@@ -208,7 +194,6 @@ public class TransactionServiceImpl implements TransactionService {
         return buildTransferResponse(tx);
     }
 
-    /* ================= ACCOUNT CLIENT OPERATIONS ================= */
 
     private BigDecimal fetchBalance(String accountNumber) {
         try {
@@ -253,7 +238,6 @@ public class TransactionServiceImpl implements TransactionService {
         // In production: accountClient.verifyOwnership(customerId, accountNumber)
     }
 
-    /* ================= LIMIT CHECKS ================= */
 
     private void checkTransactionLimits(String accountNumber, BigDecimal amount) {
         TransactionLimit limit = limitRepo
@@ -281,8 +265,6 @@ public class TransactionServiceImpl implements TransactionService {
             );
         }
     }
-
-    /* ================= RESPONSE BUILDERS ================= */
 
     private DebitTransactionResponse buildDebitResponse(Transaction tx) {
         return DebitTransactionResponse.builder()
@@ -333,7 +315,6 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
     }
 
-    /* ================= HELPERS ================= */
 
     private BigDecimal calculateTransferCharges(TransferMode mode, BigDecimal amount) {
         return switch (mode) {

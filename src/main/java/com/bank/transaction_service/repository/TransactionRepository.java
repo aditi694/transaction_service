@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
 
@@ -18,11 +19,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
 
     Optional<Transaction> findByTransactionId(String transactionId);
 
-    // 🆕 Idempotency key lookup
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
 
     List<Transaction> findTop5ByAccountNumberOrderByCreatedAtDesc(
             String accountNumber);
+
+    List<Transaction> findByCustomerId(UUID customerId); // ✅ ADD THIS
 
     @Query("""
         SELECT t FROM Transaction t
@@ -35,7 +37,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
             @Param("month") int month,
             @Param("year") int year);
 
-    // 🆕 For daily limit checks
     @Query("""
         SELECT t FROM Transaction t
         WHERE t.accountNumber = :accountNumber

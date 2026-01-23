@@ -26,31 +26,43 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
     private final BeneficiaryRepository repository;
     private final AccountClient accountClient;
     private final CustomerClient customerClient;
+
     @Override
     public BeneficiaryResponse add(BeneficiaryRequest req) {
 
         TransactionValidator.validateBeneficiary(req);
 
-        // 🔒 Check beneficiary account exists
-        if (!accountClient.accountExists(req.getBeneficiaryAccount())) {
-            throw TransactionException.badRequest("Beneficiary account does not exist");
+        if (repository.existsByCustomerIdAndBeneficiaryAccount(
+                req.getCustomerId(), req.getBeneficiaryAccount())) {
+            throw TransactionException.badRequest(
+                    "Beneficiary account already exists for this customer"
+            );
         }
 
-        // 🔥 FETCH PAYER IFSC FROM CUSTOMER SERVICE
+        if (!accountClient.accountExists(req.getBeneficiaryAccount())) {
+            throw TransactionException.badRequest(
+                    "Beneficiary account does not exist"
+            );
+        }
+
         String payerIfsc;
         try {
             payerIfsc = customerClient.getIfscByAccount(req.getAccountNumber());
         } catch (FeignException e) {
+            log.error("Failed to fetch payer IFSC: {}", e.getMessage());
             throw TransactionException.externalServiceError(
                     "Customer service unavailable"
             );
         }
 
-        String payerBank = resolveBankNameFromIfsc(payerIfsc);
-        String beneficiaryBank = resolveBankNameFromIfsc(req.getIfscCode());
+        String beneficiaryIfsc = req.getIfscCode();
 
-        boolean autoVerified =
-                payerBank.equalsIgnoreCase(beneficiaryBank);
+        BankBranchInfo payerBank = fetchBankBranch(payerIfsc);
+        BankBranchInfo beneficiaryBank = fetchBankBranch(beneficiaryIfsc);
+
+        boolean autoVerified = payerBank.bankName.equalsIgnoreCase(
+                beneficiaryBank.bankName
+        );
 
         Beneficiary entity = Beneficiary.builder()
                 .beneficiaryId("BEN-" + System.currentTimeMillis())
@@ -58,13 +70,11 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                 .accountNumber(req.getAccountNumber())
                 .beneficiaryName(req.getBeneficiaryName())
                 .beneficiaryAccount(req.getBeneficiaryAccount())
-                .ifscCode(req.getIfscCode())
-                .bankName(beneficiaryBank)
-
-                // ✅ CORRECT AUTO-VERIFY
+                .ifscCode(beneficiaryIfsc)
+                .bankName(beneficiaryBank.bankName)
+                .branchName(beneficiaryBank.branchName)
                 .isVerified(autoVerified)
                 .verifiedAt(autoVerified ? LocalDateTime.now() : null)
-
                 .isActive(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -72,32 +82,19 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
 
         repository.save(entity);
 
+        log.info("Beneficiary added: {} | Auto-verified: {}",
+                entity.getBeneficiaryId(), autoVerified);
+
         return BeneficiaryResponse.from(entity);
     }
-    private boolean isSameBank(String bank1, String bank2) {
-        return bank1 != null && bank1.equalsIgnoreCase(bank2);
-    }
+
     @Override
     public BeneficiaryResponse get(String beneficiaryId) {
         Beneficiary b = repository.findById(beneficiaryId)
                 .orElseThrow(() ->
                         TransactionException.badRequest("Beneficiary not found"));
-
         return BeneficiaryResponse.from(b);
     }
-
-    private String resolveBankNameFromIfsc(String ifsc) {
-        if (ifsc == null || ifsc.length() < 4) return "UNKNOWN";
-
-        return switch (ifsc.substring(0, 4)) {
-            case "ICIC" -> "ICICI";
-            case "HDFC" -> "HDFC";
-            case "SBIN" -> "SBI";
-            default -> "OTHER";
-        };
-    }
-
-    // ---------------- CUSTOMER ----------------
 
     @Override
     public List<BeneficiaryResponse> list(String customerId) {
@@ -107,12 +104,11 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                 .toList();
     }
 
-    // ---------------- ADMIN ----------------
-
     @Override
     public void adminVerify(String beneficiaryId, UUID adminId) {
         Beneficiary b = repository.findById(beneficiaryId)
-                .orElseThrow(() -> TransactionException.badRequest("Beneficiary not found"));
+                .orElseThrow(() ->
+                        TransactionException.badRequest("Beneficiary not found"));
 
         b.setVerified(true);
         b.setVerifiedAt(LocalDateTime.now());
@@ -120,16 +116,19 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         b.setUpdatedAt(LocalDateTime.now());
 
         repository.save(b);
+        log.info("Beneficiary verified by admin: {}", beneficiaryId);
     }
 
     @Override
     public void reject(String beneficiaryId) {
         Beneficiary b = repository.findById(beneficiaryId)
-                .orElseThrow(() -> TransactionException.badRequest("Beneficiary not found"));
+                .orElseThrow(() ->
+                        TransactionException.badRequest("Beneficiary not found"));
 
         b.setActive(false);
         b.setUpdatedAt(LocalDateTime.now());
         repository.save(b);
+        log.info("Beneficiary rejected: {}", beneficiaryId);
     }
 
     @Override
@@ -147,4 +146,32 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                 .map(BeneficiaryResponse::from)
                 .toList();
     }
+
+    private BankBranchInfo fetchBankBranch(String ifscCode) {
+        try {
+            return customerClient.getBankBranch(ifscCode);
+        } catch (FeignException e) {
+            log.warn("Failed to fetch bank branch for IFSC: {}", ifscCode);
+            return new BankBranchInfo(
+                    extractBankNameFromIfsc(ifscCode),
+                    "Unknown Branch"
+            );
+        }
+    }
+
+    private String extractBankNameFromIfsc(String ifsc) {
+        if (ifsc == null || ifsc.length() < 4) return "UNKNOWN";
+
+        return switch (ifsc.substring(0, 4)) {
+            case "ICIC" -> "ICICI Bank";
+            case "HDFC" -> "HDFC Bank";
+            case "SBIN" -> "State Bank of India";
+            case "AXIS" -> "Axis Bank";
+            case "PUNB" -> "Punjab National Bank";
+            case "UBIN" -> "Union Bank of India";
+            default -> "OTHER";
+        };
+    }
+
+    public record BankBranchInfo(String bankName, String branchName) {}
 }

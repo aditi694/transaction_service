@@ -24,18 +24,17 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 INTERNAL - Only for service-to-service (future: add service auth)
+                        //INTERNAL
                         .requestMatchers("/api/internal/**").permitAll()
 
-                        // 🔥 ADMIN - Admin approval endpoints
+                        //ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 🔥 CUSTOMER - Customer transactions (requires authentication)
+                        // CUSTOMER
                         .requestMatchers("/api/customer/**").authenticated()
                         .requestMatchers("/api/beneficiaries/**").authenticated()
                         .requestMatchers("/api/transactions/**").authenticated()
 
-                        // ❗ Everything else secured
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

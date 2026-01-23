@@ -16,29 +16,17 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-
-    /**
-     * Debit transaction - Customer only
-     * Idempotency key is auto-generated internally
-     */
     @PostMapping("/debit")
     public DebitTransactionResponse debit(@RequestBody DebitTransactionRequest request) {
         return transactionService.debit(request);
     }
 
-    /**
-     * Credit transaction - Customer only
-     * Idempotency key is auto-generated internally
-     */
     @PostMapping("/credit")
     public CreditTransactionResponse credit(@RequestBody CreditTransactionRequest request) {
         return transactionService.credit(request);
     }
 
-    /**
-     * Transfer transaction - Customer only
-     * Idempotency key is auto-generated internally
-     */
+
     @PostMapping("/transfer")
     public TransferTransactionResponse transfer(@RequestBody TransferTransactionRequest request) {
         return transactionService.transfer(request);

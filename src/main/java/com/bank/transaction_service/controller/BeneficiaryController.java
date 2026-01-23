@@ -17,7 +17,6 @@ public class BeneficiaryController {
 
     private final BeneficiaryService beneficiaryService;
 
-    // ================= CUSTOMER =================
 
     @PostMapping
     public BeneficiaryResponse add(@RequestBody BeneficiaryRequest request) {
@@ -31,8 +30,6 @@ public class BeneficiaryController {
         AuthUser user = getAuthUser();
         return beneficiaryService.list(user.getCustomerId().toString());
     }
-
-    // ================= ADMIN =================
 
     @GetMapping("/admin/all")
     public List<BeneficiaryResponse> listAll() {
@@ -57,8 +54,6 @@ public class BeneficiaryController {
         requireAdmin();
         beneficiaryService.reject(id);
     }
-
-    // ================= HELPERS =================
 
     private AuthUser getAuthUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication();

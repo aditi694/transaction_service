@@ -14,9 +14,6 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
 
-    /**
-     * GET /api/transactions/analytics?accountNumber=XXX&month=2026-01
-     */
     @GetMapping("/analytics")
     public TransactionAnalyticsResponse analytics(
             @RequestParam String accountNumber,
