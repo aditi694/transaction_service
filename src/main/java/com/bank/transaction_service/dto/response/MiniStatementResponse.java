@@ -8,12 +8,11 @@ import java.util.List;
 @Data
 @Builder
 public class MiniStatementResponse {
-
     private boolean success;
-
+    private String message;
+    private String description;
     private String accountNumber;
     private BigDecimal currentBalance;
-
     private List<MiniTxn> lastTransactions;
 
     @Data
@@ -23,5 +22,6 @@ public class MiniStatementResponse {
         private String description;
         private BigDecimal amount;
         private BigDecimal balance;
+        private String type;
     }
 }

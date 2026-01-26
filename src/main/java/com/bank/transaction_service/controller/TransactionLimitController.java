@@ -6,9 +6,9 @@ import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.TransactionLimitService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/api/customer/limits")
@@ -18,11 +18,9 @@ public class TransactionLimitController {
     private final TransactionLimitService limitService;
 
     @GetMapping
-    public TransactionLimitResponse getLimits(
-            @RequestParam String accountNumber
-    ) {
+    public TransactionLimitResponse getLimits(@RequestParam String accountNumber) {
         AuthUser user = getAuthUser();
-        // TODO: verify account belongs to customer
+        // future: verify account belongs to user
         return limitService.get(accountNumber);
     }
 
@@ -32,18 +30,24 @@ public class TransactionLimitController {
             @RequestBody LimitUpdateRequest request
     ) {
         AuthUser user = getAuthUser();
-        // TODO: verify account belongs to customer
+        // future: verify account belongs to user
         return limitService.update(accountNumber, request);
     }
 
     private AuthUser getAuthUser() {
-        Object principal = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        if (principal instanceof AuthUser) {
-            return (AuthUser) principal;
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw TransactionException.unauthorized("User not authenticated");
         }
-        throw TransactionException.unauthorized("User not authenticated");
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof AuthUser authUser) {
+            return authUser;
+        }
+
+        throw TransactionException.unauthorized("Invalid authentication principal");
     }
 }

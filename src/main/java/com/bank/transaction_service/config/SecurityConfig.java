@@ -24,23 +24,22 @@ public class SecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        //INTERNAL
+                        // INTERNAL
                         .requestMatchers("/api/internal/**").permitAll()
 
-                        //ADMIN
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // ADMIN - specific paths
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN")
 
                         // CUSTOMER
-                        .requestMatchers("/api/customer/**").authenticated()
-                        .requestMatchers("/api/beneficiaries/**").authenticated()
-                        .requestMatchers("/api/transactions/**").authenticated()
+                        .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
+//                        .requestMatchers("/api/beneficiaries/**").hasAnyRole("CUSTOMER", "ADMIN")
+//                        .requestMatchers("/api/transactions/**").hasAnyRole("CUSTOMER", "ADMIN")
+                                .requestMatchers("/api/beneficiaries/**").hasRole("CUSTOMER")
+                                .requestMatchers("/api/transactions/**").hasRole("CUSTOMER")
 
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(
-                        jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

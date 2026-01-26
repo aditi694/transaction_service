@@ -5,28 +5,34 @@ import java.time.LocalDate;
 public enum Frequency {
     DAILY {
         @Override
-        public LocalDate next(LocalDate date) {
-            return date.plusDays(1);
+        public LocalDate next(LocalDate current) {
+            return current.plusDays(1);
         }
     },
     WEEKLY {
         @Override
-        public LocalDate next(LocalDate date) {
-            return date.plusWeeks(1);
+        public LocalDate next(LocalDate current) {
+            return current.plusWeeks(1);
         }
     },
     MONTHLY {
         @Override
-        public LocalDate next(LocalDate date) {
-            return date.plusMonths(1);
+        public LocalDate next(LocalDate current) {
+            return current.plusMonths(1);
+        }
+    },
+    QUARTERLY {
+        @Override
+        public LocalDate next(LocalDate current) {
+            return current.plusMonths(3);
         }
     },
     YEARLY {
         @Override
-        public LocalDate next(LocalDate date) {
-            return date.plusYears(1);
+        public LocalDate next(LocalDate current) {
+            return current.plusYears(1);
         }
     };
 
-    public abstract LocalDate next(LocalDate date);
+    public abstract LocalDate next(LocalDate current);
 }

@@ -5,71 +5,85 @@ import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.BeneficiaryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/beneficiaries")
 @RequiredArgsConstructor
 public class AdminController {
 
     private final BeneficiaryService beneficiaryService;
 
-    @PostMapping("/beneficiaries/{beneficiaryId}/approve")
-    public BeneficiaryResponse approveBeneficiary(@PathVariable String beneficiaryId) {
-        AuthUser admin = getAuthUser();
-
-        if (!admin.isAdmin()) {
-            throw TransactionException.unauthorized("Admin access required");
-        }
-
-        beneficiaryService.adminVerify(beneficiaryId, admin.getCustomerId());
-        return beneficiaryService.get(beneficiaryId);
-    }
-
-    @GetMapping("/beneficiaries")
-    public List<BeneficiaryResponse> getAllBeneficiaries(
-            @RequestParam(required = false) String customerId,
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "false") boolean pendingOnly
     ) {
-        AuthUser admin = getAuthUser();
+        requireAdmin();
 
-        if (!admin.isAdmin()) {
+        List<BeneficiaryResponse> list = pendingOnly
+                ? beneficiaryService.listPendingApprovals()
+                : beneficiaryService.listAll();
+
+        if (list.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", pendingOnly
+                            ? "No pending beneficiary approvals"
+                            : "No beneficiaries found",
+                    "count", 0,
+                    "beneficiaries", list
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Beneficiaries fetched successfully",
+                "count", list.size(),
+                "beneficiaries", list
+        ));
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Map<String, Object>> approve(@PathVariable String id) {
+        AuthUser admin = requireAdmin();
+        beneficiaryService.adminVerify(id, admin.getCustomerId());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Beneficiary approved"
+        ));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<Map<String, Object>> reject(@PathVariable String id) {
+        requireAdmin();
+        beneficiaryService.reject(id);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Beneficiary rejected"
+        ));
+    }
+
+    private AuthUser requireAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof AuthUser)) {
+            throw TransactionException.unauthorized("User not authenticated");
+        }
+
+        AuthUser user = (AuthUser) auth.getPrincipal();
+
+        if (!user.isAdmin()) {
             throw TransactionException.unauthorized("Admin access required");
         }
 
-        if (customerId != null) {
-            return beneficiaryService.list(customerId);
-        }
-
-        if (pendingOnly) {
-            return beneficiaryService.listPendingApprovals();
-        }
-
-        return beneficiaryService.listAll();
-    }
-
-    @PostMapping("/beneficiaries/{beneficiaryId}/reject")
-    public BeneficiaryResponse rejectBeneficiary(@PathVariable String beneficiaryId) {
-        AuthUser admin = getAuthUser();
-
-        if (!admin.isAdmin()) {
-            throw TransactionException.unauthorized("Admin access required");
-        }
-
-        beneficiaryService.reject(beneficiaryId);
-        return beneficiaryService.get(beneficiaryId);
-    }
-
-    private AuthUser getAuthUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication();
-
-        if (principal instanceof AuthUser) {
-            return (AuthUser) principal;
-        }
-
-        throw TransactionException.unauthorized("User not authenticated");
+        return user;
     }
 }

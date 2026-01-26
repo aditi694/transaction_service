@@ -21,8 +21,8 @@ public class AuthUser extends AbstractAuthenticationToken {
     }
 
     private static Collection<? extends GrantedAuthority> getAuthorities(String role) {
-        String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        return List.of(new SimpleGrantedAuthority(authority));
+        // Role should already have ROLE_ prefix from filter
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     @Override
@@ -44,10 +44,11 @@ public class AuthUser extends AbstractAuthenticationToken {
     }
 
     public boolean isAdmin() {
-        return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
+        // Check both with and without ROLE_ prefix
+        return "ROLE_ADMIN".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role);
     }
 
     public boolean isCustomer() {
-        return "CUSTOMER".equalsIgnoreCase(role) || "ROLE_CUSTOMER".equalsIgnoreCase(role);
+        return "ROLE_CUSTOMER".equalsIgnoreCase(role) || "CUSTOMER".equalsIgnoreCase(role);
     }
 }

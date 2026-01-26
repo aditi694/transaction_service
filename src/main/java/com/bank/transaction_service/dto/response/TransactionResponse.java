@@ -21,4 +21,6 @@ public class TransactionResponse {
     private BigDecimal balanceAfter;
 
     private String status;
+    private String statusMessage;
+
 }

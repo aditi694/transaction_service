@@ -17,10 +17,10 @@ public class TransactionInternalController {
 
     @GetMapping("/total-debit")
     public double totalDebit(@RequestParam UUID customerId) {
-
         return repo.findByCustomerId(customerId)
                 .stream()
-                .filter(t -> t.getTransactionType() == TransactionType.DEBIT)
+                .filter(t -> t.getTransactionType() == TransactionType.DEBIT ||
+                        t.getTransactionType() == TransactionType.TRANSFER)
                 .map(t -> t.getAmount().doubleValue())
                 .reduce(0.0, Double::sum);
     }

@@ -6,10 +6,14 @@ import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.BeneficiaryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/beneficiaries")
 @RequiredArgsConstructor
@@ -17,55 +21,50 @@ public class BeneficiaryController {
 
     private final BeneficiaryService beneficiaryService;
 
-
     @PostMapping
-    public BeneficiaryResponse add(@RequestBody BeneficiaryRequest request) {
+    public ResponseEntity<Map<String, Object>> add(@RequestBody BeneficiaryRequest request) {
         AuthUser user = getAuthUser();
         request.setCustomerId(user.getCustomerId().toString());
-        return beneficiaryService.add(request);
+        BeneficiaryResponse response = beneficiaryService.add(request);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", response.isVerified()
+                        ? "Beneficiary added and verified"
+                        : "Beneficiary added, pending verification",
+                "data", response
+        ));
     }
 
     @GetMapping
-    public List<BeneficiaryResponse> listOwn() {
+    public ResponseEntity<Map<String, Object>> listOwn() {
         AuthUser user = getAuthUser();
-        return beneficiaryService.list(user.getCustomerId().toString());
-    }
+        List<BeneficiaryResponse> list =
+                beneficiaryService.list(user.getCustomerId().toString());
 
-    @GetMapping("/admin/all")
-    public List<BeneficiaryResponse> listAll() {
-        requireAdmin();
-        return beneficiaryService.listAll();
-    }
+        if (list.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "No beneficiaries found",
+                    "beneficiaries", list
+            ));
+        }
 
-    @GetMapping("/admin/pending")
-    public List<BeneficiaryResponse> pending() {
-        requireAdmin();
-        return beneficiaryService.listPendingApprovals();
-    }
-
-    @PostMapping("/admin/{id}/approve")
-    public void approve(@PathVariable String id) {
-        AuthUser admin = requireAdmin();
-        beneficiaryService.adminVerify(id, admin.getCustomerId());
-    }
-
-    @PostMapping("/admin/{id}/reject")
-    public void reject(@PathVariable String id) {
-        requireAdmin();
-        beneficiaryService.reject(id);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Beneficiaries fetched successfully",
+                "count", list.size(),
+                "beneficiaries", list
+        ));
     }
 
     private AuthUser getAuthUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication();
-        if (principal instanceof AuthUser au) return au;
-        throw TransactionException.unauthorized("User not authenticated");
-    }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    private AuthUser requireAdmin() {
-        AuthUser user = getAuthUser();
-        if (!user.isAdmin()) {
-            throw TransactionException.unauthorized("Admin access required");
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof AuthUser)) {
+            throw TransactionException.unauthorized("User not authenticated");
         }
-        return user;
+
+        return (AuthUser) auth.getPrincipal();
     }
 }
