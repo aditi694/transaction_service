@@ -58,7 +58,6 @@ public class ScheduledTransactionController {
     @GetMapping
     public List<ScheduledTransaction> mySchedules() {
         AuthUser user = getAuthUser();
-        // In real scenario, get account number from user context
         return repository.findByAccountNumber(user.getCustomerId().toString());
     }
 

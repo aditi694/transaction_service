@@ -22,7 +22,7 @@ public final class TransactionValidator {
     public static void validateAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw TransactionException.badRequest(
-                    "Transaction amount must be greater than zero"
+                    "Transacti`on amount must be greater than zero"
             );
         }
     }

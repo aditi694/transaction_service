@@ -21,7 +21,6 @@ public class AuthUser extends AbstractAuthenticationToken {
     }
 
     private static Collection<? extends GrantedAuthority> getAuthorities(String role) {
-        // Role should already have ROLE_ prefix from filter
         return List.of(new SimpleGrantedAuthority(role));
     }
 

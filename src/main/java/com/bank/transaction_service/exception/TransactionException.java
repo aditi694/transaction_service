@@ -10,7 +10,7 @@ public class TransactionException extends RuntimeException {
     private final ErrorCode errorCode;
     private final HttpStatus status;
 
-    private TransactionException(String message, ErrorCode errorCode, HttpStatus status) {
+    public TransactionException(String message, ErrorCode errorCode, HttpStatus status) {
         super(message);
         this.errorCode = errorCode;
         this.status = status;

@@ -19,7 +19,7 @@ public class AnalyticsController {
             @RequestParam String accountNumber,
             @RequestParam String month
     ) {
-        YearMonth yearMonth = YearMonth.parse(month); // yyyy-MM
+        YearMonth yearMonth = YearMonth.parse(month);
 
         return analyticsService.getMonthlyAnalytics(accountNumber, yearMonth);
     }

@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @FeignClient(
         name = "ACCOUNT-SERVICE",
@@ -29,4 +30,8 @@ public interface AccountClient {
 
     @GetMapping("/{accountNumber}/exists")
     boolean accountExists(@PathVariable String accountNumber);
+
+    @GetMapping("/{accountNumber}/owner")
+    UUID getAccountOwner(@PathVariable String accountNumber); // ✅ UUID
+
 }

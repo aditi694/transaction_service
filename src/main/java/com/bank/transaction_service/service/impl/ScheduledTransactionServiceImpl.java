@@ -48,15 +48,11 @@ public class ScheduledTransactionServiceImpl implements ScheduledTransactionServ
         for (ScheduledTransaction st : dueTransactions) {
             try {
                 log.info("Processing scheduled transaction: {}", st.getId());
-
-                // Execute the debit transaction
                 DebitTransactionRequest request = st.toDebitRequest();
                 transactionService.debit(request);
 
-                // Update next execution date
                 st.updateNextExecutionDate();
 
-                // Check if schedule has ended
                 if (st.getEndDate() != null &&
                         st.getNextExecutionDate().isAfter(st.getEndDate())) {
                     st.setStatus(ScheduledStatus.COMPLETED);

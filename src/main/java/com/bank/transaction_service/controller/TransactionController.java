@@ -6,6 +6,7 @@ import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.TransactionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +34,9 @@ public class TransactionController {
     }
 
     private AuthUser getAuthUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication();
+//        Object principal = SecurityContextHolder.getContext().getAuthentication();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = auth.getPrincipal();
 
         if (principal instanceof AuthUser) {
             return (AuthUser) principal;

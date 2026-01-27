@@ -29,7 +29,6 @@ public class Transaction {
     @Column(nullable = false)
     private String accountNumber;
 
-    // 🆕 Customer ID for linking to customer
     @Column(nullable = false)
     private UUID customerId;
 
@@ -69,4 +68,15 @@ public class Transaction {
     private LocalDateTime createdAt;
     private String ipAddress;
     private String device;
+
+    public void markSuccess(BigDecimal before, BigDecimal after) {
+        this.balanceBefore = before;
+        this.balanceAfter = after;
+        this.status = TransactionStatus.SUCCESS;
+    }
+
+    public void markFailed() {
+        this.status = TransactionStatus.FAILED;
+    }
+
 }

@@ -20,7 +20,6 @@ public class TransactionLimitController {
     @GetMapping
     public TransactionLimitResponse getLimits(@RequestParam String accountNumber) {
         AuthUser user = getAuthUser();
-        // future: verify account belongs to user
         return limitService.get(accountNumber);
     }
 
@@ -30,7 +29,6 @@ public class TransactionLimitController {
             @RequestBody LimitUpdateRequest request
     ) {
         AuthUser user = getAuthUser();
-        // future: verify account belongs to user
         return limitService.update(accountNumber, request);
     }
 
