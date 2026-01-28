@@ -23,9 +23,6 @@ public class ScheduledTransactionServiceImpl implements ScheduledTransactionServ
     private final ScheduledTransactionRepository repository;
     private final TransactionService transactionService;
 
-    /**
-     * Runs every day at 2 AM to execute scheduled transactions
-     */
     @Override
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional

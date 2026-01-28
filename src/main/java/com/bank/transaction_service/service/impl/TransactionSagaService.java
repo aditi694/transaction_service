@@ -21,12 +21,20 @@ public class TransactionSagaService {
     private final TransactionSagaRepository sagaRepo;
     private final AccountClient accountClient;
 
-    public TransactionSaga start(String transactionId) {
+    public TransactionSaga start(
+            String transactionId,
+            BigDecimal amount,
+            String fromAccount,
+            String toAccount
+    ) {
 
         TransactionSaga saga = TransactionSaga.builder()
                 .sagaId("SAGA-" + transactionId)
                 .transactionId(transactionId)
-                .currentStep(SagaStep.TRANSACTION_CREATED)
+                .amount(amount)
+                .fromAccount(fromAccount)
+                .toAccount(toAccount)
+                .currentStep(SagaStep.STARTED)
                 .status(SagaStatus.IN_PROGRESS)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -35,7 +43,6 @@ public class TransactionSagaService {
         return sagaRepo.save(saga);
     }
 
-    /* ===== DEBIT ===== */
 
     public void debit(TransactionSaga saga, String account, BigDecimal amount) {
         try {
@@ -46,9 +53,6 @@ public class TransactionSagaService {
             throw e;
         }
     }
-
-    /* ===== CREDIT ===== */
-
     public void credit(TransactionSaga saga, String account, BigDecimal amount) {
         try {
             accountClient.credit(account, amount);

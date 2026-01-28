@@ -7,17 +7,29 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "transaction_saga")
-@Getter @Setter @Builder
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransactionSaga {
 
     @Id
     private String sagaId;
 
+    @Column(nullable = false)
     private String transactionId;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    @Column(name = "from_account")
+    private String fromAccount;
+
+    @Column(name = "to_account")
+    private String toAccount;
 
     @Enumerated(EnumType.STRING)
     private SagaStep currentStep;

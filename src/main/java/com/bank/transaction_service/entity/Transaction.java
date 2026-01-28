@@ -33,13 +33,19 @@ public class Transaction {
     private UUID customerId;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TransactionType transactionType;
 
     @Enumerated(EnumType.STRING)
     private TransactionCategory category;
 
+    @Column(nullable = false)
     private BigDecimal amount;
+
+    @Column(nullable = false)
     private BigDecimal charges;
+
+    @Column(nullable = false)
     private BigDecimal totalAmount;
 
     private BigDecimal balanceBefore;
@@ -48,9 +54,10 @@ public class Transaction {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TransactionStatus status;
 
-    // Transfer fields
+    // Transfer only
     private String toAccount;
     private String beneficiaryName;
 
@@ -58,25 +65,10 @@ public class Transaction {
     private TransferMode transferMode;
 
     private String utrNumber;
-    private String ifscCode;
 
-    // 🆕 Idempotency key for duplicate detection
     @Column(unique = true, length = 100)
     private String idempotencyKey;
 
-    // Metadata
+    @Column(nullable = false)
     private LocalDateTime createdAt;
-    private String ipAddress;
-    private String device;
-
-    public void markSuccess(BigDecimal before, BigDecimal after) {
-        this.balanceBefore = before;
-        this.balanceAfter = after;
-        this.status = TransactionStatus.SUCCESS;
-    }
-
-    public void markFailed() {
-        this.status = TransactionStatus.FAILED;
-    }
-
 }
