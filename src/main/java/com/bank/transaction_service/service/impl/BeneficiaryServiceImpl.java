@@ -44,7 +44,6 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                     "Beneficiary account does not exist"
             );
         }
-
         String payerIfsc;
         try {
             payerIfsc = customerClient.getIfscByAccount(req.getAccountNumber());

@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class DebitTransactionRequest {
-
     private String accountNumber;
     private BigDecimal amount;
     private TransactionCategory category;
     private String description;
+    private String idempotencyKey;
 }

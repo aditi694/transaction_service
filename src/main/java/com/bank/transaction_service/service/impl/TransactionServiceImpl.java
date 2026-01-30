@@ -23,11 +23,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepo;
@@ -35,130 +34,96 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountClient accountClient;
     private final TransactionSagaService sagaService;
 
-
+    /* =========================
+       CREDIT
+     ========================= */
     @Override
     public CreditTransactionResponse credit(CreditTransactionRequest req) {
 
         AuthUser user = currentUser();
-        verifyAccountOwnership(user.getCustomerId(), req.getAccountNumber());
-
-        BigDecimal amount = req.getAmount();
+        verifyOwnership(user.getCustomerId(), req.getAccountNumber());
+        String idempotencyKey = generateIdempotencyKey(req);
+        Transaction existing = findIdempotentTxn(idempotencyKey);
+        if (existing != null && existing.getStatus() == TransactionStatus.SUCCESS) {
+            return buildCreditResponse(existing);
+        }
         BigDecimal before = fetchBalance(req.getAccountNumber());
 
-        Transaction tx = Transaction.builder()
-                .transactionId(generateTxnId())
-                .accountNumber(req.getAccountNumber())
-                .customerId(user.getCustomerId())
-                .transactionType(TransactionType.CREDIT)
-                .amount(amount)
-                .charges(BigDecimal.ZERO)
-                .totalAmount(amount)
-                .balanceBefore(before)
-                .status(TransactionStatus.IN_PROGRESS)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        transactionRepo.save(tx);
-
-        TransactionSaga saga = sagaService.start(
-                tx.getTransactionId(),
-                amount,
-                null,
-                req.getAccountNumber()
+        Transaction tx = createTxn(
+                req.getAccountNumber(),
+                user.getCustomerId(),
+                TransactionType.CREDIT,
+                req.getAmount(),
+                BigDecimal.ZERO,
+                before,
+                idempotencyKey
         );
 
-        sagaService.credit(saga, req.getAccountNumber(), amount);
+        TransactionSaga saga = sagaService.start(tx);
+
+        sagaService.credit(saga, req.getAccountNumber(), req.getAmount());
         sagaService.complete(saga);
 
-        BigDecimal after = fetchBalance(req.getAccountNumber());
+        finalizeTxn(tx, fetchBalance(req.getAccountNumber()));
 
-        tx.setStatus(TransactionStatus.SUCCESS);
-        tx.setBalanceAfter(after);
-        transactionRepo.save(tx);
-
-        return CreditTransactionResponse.builder()
-                .success(true)
-                .message("Amount credited successfully")
-                .transactionId(tx.getTransactionId())
-                .amount(amount)
-                .previousBalance(before)
-                .currentBalance(after)
-                .status("SUCCESS")
-                .timestamp(tx.getCreatedAt())
-                .build();
+        return buildCreditResponse(tx);
     }
 
-
+    /* =========================
+       DEBIT
+     ========================= */
     @Override
     public DebitTransactionResponse debit(DebitTransactionRequest req) {
 
         AuthUser user = currentUser();
-        verifyAccountOwnership(user.getCustomerId(), req.getAccountNumber());
+        verifyOwnership(user.getCustomerId(), req.getAccountNumber());
+        checkTransactionLimits(req.getAccountNumber(), req.getAmount());
 
-        BigDecimal amount = req.getAmount();
+        String idempotencyKey = generateIdempotencyKey(req);
+        Transaction existing = findIdempotentTxn(idempotencyKey);
+        if (existing != null && existing.getStatus() == TransactionStatus.SUCCESS) {
+            return buildDebitResponse(existing);
+        }
         BigDecimal before = fetchBalance(req.getAccountNumber());
 
-        checkTransactionLimits(req.getAccountNumber(), amount);
-
-        Transaction tx = Transaction.builder()
-                .transactionId(generateTxnId())
-                .accountNumber(req.getAccountNumber())
-                .customerId(user.getCustomerId())
-                .transactionType(TransactionType.DEBIT)
-                .amount(amount)
-                .charges(BigDecimal.ZERO)
-                .totalAmount(amount)
-                .balanceBefore(before)
-                .status(TransactionStatus.IN_PROGRESS)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        transactionRepo.save(tx);
-
-        TransactionSaga saga = sagaService.start(
-                tx.getTransactionId(),
-                amount,
+        Transaction tx = createTxn(
                 req.getAccountNumber(),
-                null
+                user.getCustomerId(),
+                TransactionType.DEBIT,
+                req.getAmount(),
+                BigDecimal.ZERO,
+                before,
+                idempotencyKey
         );
 
-        sagaService.debit(saga, req.getAccountNumber(), amount);
+        TransactionSaga saga = sagaService.start(tx);
+        sagaService.debit(saga, req.getAccountNumber(), req.getAmount());
         sagaService.complete(saga);
 
-        BigDecimal after = fetchBalance(req.getAccountNumber());
+        finalizeTxn(tx, fetchBalance(req.getAccountNumber()));
 
-        tx.setStatus(TransactionStatus.SUCCESS);
-        tx.setBalanceAfter(after);
-        transactionRepo.save(tx);
-
-        return DebitTransactionResponse.builder()
-                .success(true)
-                .message("Transaction successful")
-                .transactionId(tx.getTransactionId())
-                .amount(amount)
-                .charges(BigDecimal.ZERO)
-                .totalDeducted(amount)
-                .previousBalance(before)
-                .currentBalance(after)
-                .status("SUCCESS")
-                .timestamp(tx.getCreatedAt())
-                .build();
+        return buildDebitResponse(tx);
     }
 
+    /* =========================
+       TRANSFER
+     ========================= */
     @Override
     public TransferTransactionResponse transfer(TransferTransactionRequest req) {
 
         AuthUser user = currentUser();
-        verifyAccountOwnership(user.getCustomerId(), req.getFromAccount());
-
-        BigDecimal amount = req.getAmount();
+        verifyOwnership(user.getCustomerId(), req.getFromAccount());
         TransferMode mode = TransferMode.valueOf(req.getTransferType());
-
-        BigDecimal charges = calculateTransferCharges(mode, amount);
-        BigDecimal totalDeducted = amount.add(charges);
+        BigDecimal charges = calculateTransferCharges(mode, req.getAmount());
+        BigDecimal totalDeducted = req.getAmount().add(charges);
 
         checkTransactionLimits(req.getFromAccount(), totalDeducted);
 
+        String idempotencyKey = generateIdempotencyKey(req);
+        Transaction existing = findIdempotentTxn(idempotencyKey);
+        if (existing != null && existing.getStatus() == TransactionStatus.SUCCESS) {
+            return buildTransferResponse(existing);
+        }
         BigDecimal before = fetchBalance(req.getFromAccount());
 
         Transaction tx = Transaction.builder()
@@ -168,76 +133,40 @@ public class TransactionServiceImpl implements TransactionService {
                 .customerId(user.getCustomerId())
                 .transactionType(TransactionType.TRANSFER)
                 .transferMode(mode)
-                .amount(amount)
+                .amount(req.getAmount())
                 .charges(charges)
                 .totalAmount(totalDeducted)
                 .balanceBefore(before)
                 .status(TransactionStatus.IN_PROGRESS)
+                .idempotencyKey(idempotencyKey)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         transactionRepo.save(tx);
 
-        TransactionSaga saga = sagaService.start(
-                tx.getTransactionId(),
-                totalDeducted,
-                req.getFromAccount(),
-                req.getToAccount()
-        );
-
+        TransactionSaga saga = sagaService.start(tx);
         sagaService.debit(saga, req.getFromAccount(), totalDeducted);
-        sagaService.credit(saga, req.getToAccount(), amount);
+        sagaService.credit(saga, req.getToAccount(), req.getAmount());
         sagaService.complete(saga);
 
-        BigDecimal after = fetchBalance(req.getFromAccount());
-
-        tx.setStatus(TransactionStatus.SUCCESS);
-        tx.setBalanceAfter(after);
         tx.setUtrNumber(generateUTR());
-        transactionRepo.save(tx);
+        finalizeTxn(tx, fetchBalance(req.getFromAccount()));
 
-        return TransferTransactionResponse.builder()
-                .success(true)
-                .message("Transfer completed successfully")
-                .transactionId(tx.getTransactionId())
-                .fromAccount(req.getFromAccount())
-                .toAccount(req.getToAccount())
-                .transferMode(mode.name())
-                .amount(amount)
-                .charges(charges)
-                .totalDeducted(totalDeducted)
-                .senderBalanceBefore(before)
-                .senderBalanceAfter(after)
-                .status("SUCCESS")
-                .utrNumber(tx.getUtrNumber())
-                .timestamp(tx.getCreatedAt())
-                .build();
+        return buildTransferResponse(tx);
     }
 
+    /* =========================
+       INTERNAL HELPERS
+     ========================= */
 
-    private BigDecimal fetchBalance(String accountNumber) {
-        try {
-            return accountClient.getBalance(accountNumber);
-        } catch (FeignException e) {
-            throw TransactionException.externalServiceError("Account service unavailable");
-        }
-    }
-
-    private void verifyAccountOwnership(UUID customerId, String accountNumber) {
-        try {
-            UUID owner = accountClient.getAccountOwner(accountNumber);
-            if (!owner.equals(customerId)) {
-                throw TransactionException.unauthorized(
-                        "You are not authorized to operate this account"
-                );
-            }
-        } catch (FeignException e) {
-            throw TransactionException.externalServiceError(
-                    "Unable to verify account ownership"
+    private void verifyOwnership(UUID customerId, String accountNumber) {
+        UUID owner = accountClient.getAccountOwner(accountNumber);
+        if (!owner.equals(customerId)) {
+            throw TransactionException.unauthorized(
+                    "You are not authorized to operate this account"
             );
         }
     }
-
     private void checkTransactionLimits(String accountNumber, BigDecimal amount) {
 
         TransactionLimit limit = limitRepo
@@ -249,6 +178,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         LocalDate today = LocalDate.now();
+
         BigDecimal todayTotal = transactionRepo
                 .findByAccountNumberAndDate(accountNumber, today)
                 .stream()
@@ -260,7 +190,6 @@ public class TransactionServiceImpl implements TransactionService {
             throw TransactionException.limitExceeded("Daily limit exceeded");
         }
     }
-
     private BigDecimal calculateTransferCharges(TransferMode mode, BigDecimal amount) {
         return switch (mode) {
             case IMPS -> BigDecimal.valueOf(5);
@@ -271,23 +200,107 @@ public class TransactionServiceImpl implements TransactionService {
             case UPI -> BigDecimal.ZERO;
         };
     }
+    private CreditTransactionResponse buildCreditResponse(Transaction tx) {
+        return CreditTransactionResponse.builder()
+                .success(true)
+                .message("Amount credited successfully")
+                .transactionId(tx.getTransactionId())
+                .amount(tx.getAmount())
+                .previousBalance(tx.getBalanceBefore())
+                .currentBalance(tx.getBalanceAfter())
+                .status(tx.getStatus().name())
+                .timestamp(tx.getCreatedAt())
+                .build();
+    }
+
+    private DebitTransactionResponse buildDebitResponse(Transaction tx) {
+        return DebitTransactionResponse.builder()
+                .success(true)
+                .message("Transaction successful")
+                .transactionId(tx.getTransactionId())
+                .amount(tx.getAmount())
+                .charges(tx.getCharges())
+                .totalDeducted(tx.getTotalAmount())
+                .previousBalance(tx.getBalanceBefore())
+                .currentBalance(tx.getBalanceAfter())
+                .status(tx.getStatus().name())
+                .timestamp(tx.getCreatedAt())
+                .build();
+    }
+
+    private TransferTransactionResponse buildTransferResponse(Transaction tx) {
+        return TransferTransactionResponse.builder()
+                .success(true)
+                .message("Transfer completed successfully")
+                .transactionId(tx.getTransactionId())
+                .fromAccount(tx.getAccountNumber())
+                .toAccount(tx.getToAccount())
+                .amount(tx.getAmount())
+                .charges(tx.getCharges())
+                .totalDeducted(tx.getTotalAmount())
+                .senderBalanceBefore(tx.getBalanceBefore())
+                .senderBalanceAfter(tx.getBalanceAfter())
+                .status(tx.getStatus().name())
+                .utrNumber(tx.getUtrNumber())
+                .timestamp(tx.getCreatedAt())
+                .build();
+    }
+    private Transaction findIdempotentTxn(String key) {
+        return transactionRepo.findByIdempotencyKey(key).orElse(null);
+    }
+
+    private Transaction createTxn(
+            String account,
+            UUID customerId,
+            TransactionType type,
+            BigDecimal amount,
+            BigDecimal charges,
+            BigDecimal before,
+            String idempotencyKey
+    ) {
+        Transaction tx = Transaction.builder()
+                .transactionId(generateTxnId())
+                .accountNumber(account)
+                .customerId(customerId)
+                .transactionType(type)
+                .amount(amount)
+                .charges(charges)
+                .totalAmount(amount.add(charges))
+                .balanceBefore(before)
+                .status(TransactionStatus.IN_PROGRESS)
+                .idempotencyKey(idempotencyKey)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        return transactionRepo.save(tx);
+    }
+
+    private void finalizeTxn(Transaction tx, BigDecimal after) {
+        tx.setBalanceAfter(after);
+        tx.setStatus(TransactionStatus.SUCCESS);
+        transactionRepo.save(tx);
+    }
+
+    private BigDecimal fetchBalance(String account) {
+        return accountClient.getBalance(account);
+    }
 
     private AuthUser currentUser() {
-        Object principal = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        if (principal instanceof AuthUser authUser) {
-            return authUser;
-        }
-        throw TransactionException.unauthorized("User not authenticated");
+        Object p = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (p instanceof AuthUser u) return u;
+        throw TransactionException.unauthorized("Unauthenticated");
     }
 
     private String generateTxnId() {
-        return "TXN" + System.currentTimeMillis();
+        return "TXN-" + System.currentTimeMillis();
     }
 
     private String generateUTR() {
-        return "UTR" + System.currentTimeMillis();
+        return "UTR-" + System.currentTimeMillis();
     }
+
+    private String generateIdempotencyKey(Object req) {
+        return req.hashCode() + "-" + LocalDate.now();
+    }
+
 }
