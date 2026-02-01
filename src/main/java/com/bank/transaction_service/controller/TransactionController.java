@@ -27,22 +27,8 @@ public class TransactionController {
         return transactionService.credit(request);
     }
 
-
     @PostMapping("/transfer")
     public TransferTransactionResponse transfer(@RequestBody TransferTransactionRequest request) {
         return transactionService.transfer(request);
     }
-
-    private AuthUser getAuthUser() {
-//        Object principal = SecurityContextHolder.getContext().getAuthentication();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Object principal = auth.getPrincipal();
-
-        if (principal instanceof AuthUser) {
-            return (AuthUser) principal;
-        }
-
-        throw TransactionException.unauthorized("User not authenticated");
-    }
-
 }

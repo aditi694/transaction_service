@@ -69,6 +69,8 @@ public class Transaction {
     @Column(unique = true, length = 100)
     private String idempotencyKey;
 
+    private String failureReason;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 }

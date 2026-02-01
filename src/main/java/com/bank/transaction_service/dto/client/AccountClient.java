@@ -1,5 +1,6 @@
 package com.bank.transaction_service.dto.client;
 
+import com.bank.transaction_service.dto.request.BalanceUpdateRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,27 +12,15 @@ import java.util.UUID;
         path = "/api/internal/accounts"
 )
 public interface AccountClient {
+        @PostMapping("/update-balance")
+        void updateBalance(@RequestBody BalanceUpdateRequest request);
 
-    @PostMapping("/{accountNumber}/debit")
-    void debit(
-            @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount
-    );
+        @GetMapping("/{accountNumber}/balance")
+        BigDecimal getBalance(@PathVariable String accountNumber);
 
-    @PostMapping("/{accountNumber}/credit")
-    void credit(
-            @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount
-    );
+        @GetMapping("/{accountNumber}/owner")
+        UUID getAccountOwner(@PathVariable String accountNumber);
 
-    @GetMapping("/{accountNumber}/balance")
-    BigDecimal getBalance(@PathVariable String accountNumber);
-
-
-    @GetMapping("/{accountNumber}/exists")
-    boolean accountExists(@PathVariable String accountNumber);
-
-    @GetMapping("/{accountNumber}/owner")
-    UUID getAccountOwner(@PathVariable String accountNumber); // ✅ UUID
-
+        @GetMapping("/{accountNumber}/exists")
+        boolean accountExists(@PathVariable String accountNumber);
 }

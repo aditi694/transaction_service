@@ -1,17 +1,18 @@
 package com.bank.transaction_service.controller;
 
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
-import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.BeneficiaryService;
+import com.bank.transaction_service.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+
+import static com.bank.transaction_service.util.AppConstants.*;
 
 @RestController
 @RequestMapping("/api/admin/beneficiaries")
@@ -21,29 +22,20 @@ public class AdminController {
     private final BeneficiaryService beneficiaryService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> list(
-            @RequestParam(defaultValue = "false") boolean pendingOnly
-    ) {
+    public ResponseEntity<Map<String, Object>> list(@RequestParam(defaultValue = "false") boolean pendingOnly) {
         requireAdmin();
 
         List<BeneficiaryResponse> list = pendingOnly
                 ? beneficiaryService.listPendingApprovals()
                 : beneficiaryService.listAll();
 
-        if (list.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", pendingOnly
-                            ? "No pending beneficiary approvals"
-                            : "No beneficiaries found",
-                    "count", 0,
-                    "beneficiaries", list
-            ));
-        }
+        String message = pendingOnly
+                ? (list.isEmpty() ? "No pending beneficiary approvals" : "Pending beneficiaries fetched")
+                : (list.isEmpty() ? "No beneficiaries found" : "All beneficiaries fetched");
 
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Beneficiaries fetched successfully",
+                SUCCESS, true,
+                MESSAGE, message,
                 "count", list.size(),
                 "beneficiaries", list
         ));
@@ -55,8 +47,8 @@ public class AdminController {
         beneficiaryService.adminVerify(id, admin.getCustomerId());
 
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Beneficiary approved"
+                SUCCESS, true,
+                MESSAGE, BENEFICIARY_VERIFIED_MSG
         ));
     }
 
@@ -66,24 +58,17 @@ public class AdminController {
         beneficiaryService.reject(id);
 
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Beneficiary rejected"
+                SUCCESS, true,
+                MESSAGE, BENEFICIARY_REJECTED_MSG
         ));
     }
 
     private AuthUser requireAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof AuthUser)) {
-            throw TransactionException.unauthorized("User not authenticated");
-        }
-
-        AuthUser user = (AuthUser) auth.getPrincipal();
-
+        // Same as before, will replace exception later
+        AuthUser user = (AuthUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!user.isAdmin()) {
-            throw TransactionException.unauthorized("Admin access required");
+            throw new RuntimeException("Admin access required");
         }
-
         return user;
     }
 }

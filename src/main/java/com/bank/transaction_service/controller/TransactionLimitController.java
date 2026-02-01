@@ -20,7 +20,9 @@ public class TransactionLimitController {
     @GetMapping
     public TransactionLimitResponse getLimits(@RequestParam String accountNumber) {
         AuthUser user = getAuthUser();
-        return limitService.get(accountNumber);
+        TransactionLimitResponse response = limitService.get(accountNumber);
+        response.setMessage("Transaction limits fetched successfully");
+        return response;
     }
 
     @PutMapping
@@ -29,7 +31,9 @@ public class TransactionLimitController {
             @RequestBody LimitUpdateRequest request
     ) {
         AuthUser user = getAuthUser();
-        return limitService.update(accountNumber, request);
+        TransactionLimitResponse response = limitService.update(accountNumber, request);
+        response.setMessage("Transaction limits updated successfully");
+        return response;
     }
 
     private AuthUser getAuthUser() {

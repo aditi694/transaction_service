@@ -13,4 +13,5 @@ public class ScheduleTransactionResponse {
     private String frequency;
     private LocalDate nextExecutionDate;
     private String status;
+
 }

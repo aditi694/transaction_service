@@ -5,5 +5,10 @@ public enum SagaStep {
     DEBIT_DONE,
     CREDIT_DONE,
     COMPLETED,
-    STARTED
+    STARTED,
+    DEBIT,
+    CREDIT,
+    COMPENSATED,
+    CREDIT_SENT,
+    DEBIT_SENT
 }

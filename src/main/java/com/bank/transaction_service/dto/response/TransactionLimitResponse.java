@@ -20,7 +20,7 @@ public class TransactionLimitResponse {
     private BigDecimal atmLimit;
     private BigDecimal onlineShoppingLimit;
 
-
+    private String message;
 
     private LocalDateTime updatedAt;
 

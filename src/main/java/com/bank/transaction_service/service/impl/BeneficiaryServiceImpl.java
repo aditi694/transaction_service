@@ -18,6 +18,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_PENDING_MSG;
+import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_VERIFIED_MSG;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -44,7 +47,6 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                     "Beneficiary account does not exist"
             );
         }
-
         String payerIfsc;
         try {
             payerIfsc = customerClient.getIfscByAccount(req.getAccountNumber());
@@ -82,8 +84,9 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
 
         repository.save(entity);
 
-        log.info("Beneficiary added: {} | Auto-verified: {}",
-                entity.getBeneficiaryId(), autoVerified);
+        BeneficiaryResponse response = BeneficiaryResponse.from(entity);
+        response.setMessage(autoVerified ? BENEFICIARY_VERIFIED_MSG : BENEFICIARY_PENDING_MSG);
+        response.setStatusMessage(autoVerified ? "VERIFIED" : "PENDING_VERIFICATION");
 
         return BeneficiaryResponse.from(entity);
     }

@@ -28,9 +28,7 @@ public class ScheduledTransactionServiceImpl implements ScheduledTransactionServ
     @Transactional
     public void executeScheduledTransactions() {
 
-        log.info("========================================");
         log.info("Starting scheduled transaction execution");
-        log.info("========================================");
 
         LocalDate today = LocalDate.now();
 
@@ -71,9 +69,7 @@ public class ScheduledTransactionServiceImpl implements ScheduledTransactionServ
             }
         }
 
-        log.info("========================================");
         log.info("Scheduled transaction execution completed");
         log.info("Success: {}, Failed: {}", successCount, failureCount);
-        log.info("========================================");
     }
 }

@@ -19,6 +19,8 @@ public class BeneficiaryResponse {
     private String verificationStatus; // PENDING, VERIFIED, REJECTED
     private LocalDateTime createdAt;
     private LocalDateTime verifiedAt;
+    private String message;
+    private String statusMessage;
 
     public static BeneficiaryResponse from(com.bank.transaction_service.entity.Beneficiary b) {
         return BeneficiaryResponse.builder()
