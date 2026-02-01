@@ -32,6 +32,7 @@ public class TransactionSaga {
     private String toAccount;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "current_step", length = 50, nullable = false)
     private SagaStep currentStep;
 
     @Enumerated(EnumType.STRING)

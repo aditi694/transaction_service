@@ -159,7 +159,7 @@ public class TransactionException extends RuntimeException {
         );
     }
 
-    public static TransactionException accountNotFound() {
+    public static TransactionException notFound(String transactionNotFound) {
         return new TransactionException(
                 "Account not found or does not exist",
                 ErrorCode.ACCOUNT_NOT_FOUND,

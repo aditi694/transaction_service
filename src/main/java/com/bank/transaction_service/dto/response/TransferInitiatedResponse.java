@@ -2,16 +2,18 @@ package com.bank.transaction_service.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class TransactionStatusResponse {
+public class TransferInitiatedResponse {
 
+    private boolean success;
+    private String message;
     private String transactionId;
     private String status;
-    private String message;
-    private LocalDateTime completedAt;
-    private String failureReason;
-    private LocalDateTime createdAt;
+    private String nextStep;
+    private String statusEndpoint;
+    private LocalDateTime timestamp;
 }

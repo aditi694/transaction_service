@@ -104,7 +104,7 @@ public class TransactionServiceImpl implements TransactionService {
        TRANSFER
      ========================= */
     @Override
-    public TransferTransactionResponse transfer(TransferTransactionRequest req) {
+    public TransferInitiatedResponse transfer(TransferTransactionRequest req) {
 
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getFromAccount());
@@ -119,7 +119,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction existing = findIdempotentTxn(idempotencyKey);
 
         if (existing != null) {
-            return buildAsyncTransferResponse(existing.getTransactionId(), existing.getStatus());
+            return buildInitiatedResponse(existing.getTransactionId(), existing.getStatus());
         }
 
         Transaction tx = Transaction.builder()
@@ -143,9 +143,35 @@ public class TransactionServiceImpl implements TransactionService {
         sagaService.debit(saga);
         sagaService.credit(saga);
 
-        return buildAsyncTransferResponse(tx.getTransactionId(), TransactionStatus.IN_PROGRESS);
+        return buildInitiatedResponse(tx.getTransactionId(), TransactionStatus.IN_PROGRESS);
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionStatusResponse getStatus(String transactionId) {
+
+        Transaction tx = transactionRepo.findByTransactionId(transactionId)
+                .orElseThrow(() -> TransactionException.notFound("Transaction not found"));
+
+        return TransactionStatusResponse.builder()
+                .transactionId(tx.getTransactionId())
+                .status(tx.getStatus().name())
+                .failureReason(tx.getFailureReason())
+                .createdAt(tx.getCreatedAt())
+                .completedAt(tx.getCompletedAt())
+                .build();
     }
 
+    private TransferInitiatedResponse buildInitiatedResponse(String txnId, TransactionStatus status) {
+        return TransferInitiatedResponse.builder()
+                .success(true)
+                .message("Transfer initiated successfully")
+                .transactionId(txnId)
+                .status(status.name())
+                .nextStep("POLL_STATUS")
+                .statusEndpoint("/api/customer/transaction/" + txnId + "/status")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
     /* =========================
        HELPERS
      ========================= */
@@ -219,15 +245,15 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
     }
 
-    private TransferTransactionResponse buildAsyncTransferResponse(String txnId, TransactionStatus status) {
-        return TransferTransactionResponse.builder()
-                .success(true)
-                .transactionId(txnId)
-                .status(status.name())
-                .message("Transfer initiated")
-                .timestamp(LocalDateTime.now())
-                .build();
-    }
+//    private TransferTransactionResponse buildAsyncTransferResponse(String txnId, TransactionStatus status) {
+//        return TransferTransactionResponse.builder()
+//                .success(true)
+//                .transactionId(txnId)
+//                .status(status.name())
+//                .message("Transfer initiated")
+//                .timestamp(LocalDateTime.now())
+//                .build();
+//    }
 
     private AuthUser currentUser() {
         Object p = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

@@ -28,7 +28,11 @@ public class TransactionController {
     }
 
     @PostMapping("/transfer")
-    public TransferTransactionResponse transfer(@RequestBody TransferTransactionRequest request) {
+    public TransferInitiatedResponse transfer(@RequestBody TransferTransactionRequest request) {
         return transactionService.transfer(request);
+    }
+    @GetMapping("/{transactionId}/status")
+    public TransactionStatusResponse getStatus(@PathVariable String transactionId) {
+        return transactionService.getStatus(transactionId);
     }
 }

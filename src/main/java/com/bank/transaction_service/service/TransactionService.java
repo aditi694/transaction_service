@@ -10,6 +10,5 @@ public interface TransactionService {
     DebitTransactionResponse debit(DebitTransactionRequest request);
 
     CreditTransactionResponse credit(CreditTransactionRequest request);
-
-    TransferTransactionResponse transfer(TransferTransactionRequest request);
-}
+    TransactionStatusResponse getStatus(String transactionId);
+    TransferInitiatedResponse transfer(TransferTransactionRequest request);}
