@@ -12,12 +12,12 @@ public class DebitTransactionResponse {
     private boolean success;
     private String message;
     private String transactionId;
-    private BigDecimal amount;
-    private BigDecimal charges;
-    private BigDecimal totalDeducted;
-    private BigDecimal previousBalance;
-    private BigDecimal currentBalance;
+//    private BigDecimal amount;
+//    private BigDecimal charges;
+//    private BigDecimal totalDeducted;
+//    private BigDecimal previousBalance;
+//    private BigDecimal currentBalance;
     private String status;
     private LocalDateTime timestamp;
-    private String referenceNumber;
+//    private String referenceNumber;
 }

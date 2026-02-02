@@ -64,7 +64,6 @@ public class AdminController {
     }
 
     private AuthUser requireAdmin() {
-        // Same as before, will replace exception later
         AuthUser user = (AuthUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!user.isAdmin()) {
             throw new RuntimeException("Admin access required");

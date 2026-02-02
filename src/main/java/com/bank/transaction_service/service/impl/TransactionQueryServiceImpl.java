@@ -2,7 +2,6 @@ package com.bank.transaction_service.service.impl;
 
 import com.bank.transaction_service.dto.response.*;
 import com.bank.transaction_service.entity.Transaction;
-import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.repository.TransactionRepository;
 import com.bank.transaction_service.service.TransactionQueryService;
 import lombok.RequiredArgsConstructor;
@@ -131,26 +130,26 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
         return "****" + accountNumber.substring(accountNumber.length() - 4);
     }
 
-    @Override
-    public TransactionDetailResponse getTransaction(String transactionId) {
-        Transaction tx = transactionRepo.findByTransactionId(transactionId)
-                .orElseThrow(TransactionException::transactionNotFound);
-
-        return TransactionDetailResponse.builder()
-                .transactionId(tx.getTransactionId())
-                .amount(tx.getTotalAmount())
-                .status(tx.getStatus().name())
-                .build();
-    }
-
-    @Override
-    public TransactionStatusResponse getStatus(String transactionId) {
-        Transaction tx = transactionRepo.findByTransactionId(transactionId)
-                .orElseThrow(TransactionException::transactionNotFound);
-
-        return TransactionStatusResponse.builder()
-                .transactionId(tx.getTransactionId())
-                .status(tx.getStatus().name())
-                .build();
-    }
+//    @Override
+//    public TransactionDetailResponse getTransaction(String transactionId) {
+//        Transaction tx = transactionRepo.findByTransactionId(transactionId)
+//                .orElseThrow(TransactionException::transactionNotFound);
+//
+//        return TransactionDetailResponse.builder()
+//                .transactionId(tx.getTransactionId())
+//                .amount(tx.getTotalAmount())
+//                .status(tx.getStatus().name())
+//                .build();
+//    }
+//
+//    @Override
+//    public TransactionStatusResponse getStatus(String transactionId) {
+//        Transaction tx = transactionRepo.findByTransactionId(transactionId)
+//                .orElseThrow(TransactionException::transactionNotFound);
+//
+//        return TransactionStatusResponse.builder()
+//                .transactionId(tx.getTransactionId())
+//                .status(tx.getStatus().name())
+//                .build();
+//    }
 }

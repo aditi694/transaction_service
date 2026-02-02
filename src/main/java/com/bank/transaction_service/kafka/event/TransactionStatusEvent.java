@@ -5,8 +5,7 @@ import java.time.LocalDateTime;
 public record TransactionStatusEvent(
         int eventVersion,
         String transactionId,
-        String finalStatus,
+        String finalStatus,      // SUCCESS | FAILED | COMPENSATED
         String failureReason,
         LocalDateTime completedAt
-
 ) {}

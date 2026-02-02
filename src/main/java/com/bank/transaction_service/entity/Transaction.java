@@ -65,6 +65,8 @@ public class Transaction {
     private TransferMode transferMode;
 
     private String utrNumber;
+    private BigDecimal previousBalance;
+    private BigDecimal currentBalance;
 
     @Column(unique = true, length = 100)
     private String idempotencyKey;
