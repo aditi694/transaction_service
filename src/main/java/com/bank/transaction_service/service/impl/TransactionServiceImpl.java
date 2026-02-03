@@ -8,6 +8,7 @@ import com.bank.transaction_service.entity.TransactionLimit;
 import com.bank.transaction_service.entity.TransactionSaga;
 import com.bank.transaction_service.enums.*;
 import com.bank.transaction_service.exception.TransactionException;
+import com.bank.transaction_service.kafka.producer.TransactionStatusProducer;
 import com.bank.transaction_service.repository.TransactionLimitRepository;
 import com.bank.transaction_service.repository.TransactionRepository;
 import com.bank.transaction_service.security.AuthUser;
@@ -33,85 +34,105 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionLimitRepository limitRepo;
     private final AccountClient accountClient;
     private final TransactionSagaService sagaService;
+    private final TransactionStatusProducer statusProducer; // ✅ ONLY kafka
 
-
+    // ---------------- CREDIT ----------------
     @Override
     public CreditTransactionResponse credit(CreditTransactionRequest req) {
+
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getAccountNumber());
-
-        String idempotencyKey = generateIdempotencyKey(req);
-        Transaction existing = findIdempotentTxn(idempotencyKey);
-
-        if (existing != null) {
-            return buildAsyncResponse(existing.getTransactionId(), existing.getStatus());
-        }
 
         Transaction tx = createTxn(
                 req.getAccountNumber(),
                 user.getCustomerId(),
                 TransactionType.CREDIT,
                 req.getAmount(),
-                BigDecimal.ZERO,
-                idempotencyKey
+                BigDecimal.ZERO
         );
 
         TransactionSaga saga = sagaService.start(tx);
-        sagaService.sendCredit(saga, req.getAmount());
 
-        return buildAsyncResponse(tx.getTransactionId(), TransactionStatus.IN_PROGRESS);
+        try {
+            accountClient.credit(req.getAccountNumber(), req.getAmount());
+
+            tx.setStatus(TransactionStatus.SUCCESS);
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markCompleted(saga);
+            statusProducer.publish(tx);
+
+        } catch (Exception ex) {
+
+            tx.setStatus(TransactionStatus.FAILED);
+            tx.setFailureReason(ex.getMessage());
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markFailed(saga, ex.getMessage());
+            statusProducer.publish(tx);
+        }
+
+        return buildAsyncResponse(tx);
     }
 
+    // ---------------- DEBIT ----------------
     @Override
     public DebitTransactionResponse debit(DebitTransactionRequest req) {
+
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getAccountNumber());
         checkTransactionLimits(req.getAccountNumber(), req.getAmount());
-
-        String idempotencyKey = generateIdempotencyKey(req);
-        Transaction existing = findIdempotentTxn(idempotencyKey);
-
-        if (existing != null) {
-            return buildAsyncDebitResponse(existing.getTransactionId(), existing.getStatus());
-        }
 
         Transaction tx = createTxn(
                 req.getAccountNumber(),
                 user.getCustomerId(),
                 TransactionType.DEBIT,
                 req.getAmount(),
-                BigDecimal.ZERO,
-                idempotencyKey
+                BigDecimal.ZERO
         );
 
         TransactionSaga saga = sagaService.start(tx);
-        sagaService.sendDebit(saga, req.getAmount());
 
-        return buildAsyncDebitResponse(tx.getTransactionId(), TransactionStatus.IN_PROGRESS);
+        try {
+            accountClient.debit(req.getAccountNumber(), req.getAmount());
+
+            tx.setStatus(TransactionStatus.SUCCESS);
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markCompleted(saga);
+            statusProducer.publish(tx);
+
+        } catch (Exception ex) {
+
+            tx.setStatus(TransactionStatus.FAILED);
+            tx.setFailureReason(ex.getMessage());
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markFailed(saga, ex.getMessage());
+            statusProducer.publish(tx);
+        }
+
+        return buildAsyncDebitResponse(tx);
     }
 
+    // ---------------- TRANSFER ----------------
     @Override
     public TransferInitiatedResponse transfer(TransferTransactionRequest req) {
+
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getFromAccount());
 
-        TransferMode mode = TransferMode.valueOf(req.getTransferType());
-        BigDecimal charges = calculateTransferCharges(mode, req.getAmount());
+        BigDecimal charges = calculateTransferCharges(
+                TransferMode.valueOf(req.getTransferType()),
+                req.getAmount()
+        );
+
         BigDecimal totalDebit = req.getAmount().add(charges);
-
         checkTransactionLimits(req.getFromAccount(), totalDebit);
-
-        String idempotencyKey = generateIdempotencyKey(req);
-        Transaction existing = findIdempotentTxn(idempotencyKey);
-        if (existing != null) {
-            return TransferInitiatedResponse.builder()
-                    .success(true)
-                    .message("Duplicate transfer request")
-                    .transactionId(existing.getTransactionId())
-                    .status(existing.getStatus().name())
-                    .timestamp(LocalDateTime.now())
-                    .build();
-        }
 
         Transaction tx = Transaction.builder()
                 .transactionId(generateTxnId())
@@ -119,113 +140,109 @@ public class TransactionServiceImpl implements TransactionService {
                 .toAccount(req.getToAccount())
                 .customerId(user.getCustomerId())
                 .transactionType(TransactionType.TRANSFER)
-                .transferMode(mode)
                 .amount(req.getAmount())
                 .charges(charges)
                 .totalAmount(totalDebit)
                 .status(TransactionStatus.IN_PROGRESS)
-                .idempotencyKey(idempotencyKey)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         transactionRepo.save(tx);
-
         TransactionSaga saga = sagaService.start(tx);
-        sagaService.sendDebit(saga, totalDebit);
-        sagaService.sendCredit(saga, req.getAmount());
+
+        try {
+            accountClient.transfer(
+                    req.getFromAccount(),
+                    req.getToAccount(),
+                    req.getAmount(),
+                    charges
+            );
+
+            tx.setStatus(TransactionStatus.SUCCESS);
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markCompleted(saga);
+            statusProducer.publish(tx);
+
+        } catch (Exception ex) {
+
+            tx.setStatus(TransactionStatus.FAILED);
+            tx.setFailureReason(ex.getMessage());
+            tx.setCompletedAt(LocalDateTime.now());
+            transactionRepo.save(tx);
+
+            sagaService.markFailed(saga, ex.getMessage());
+            statusProducer.publish(tx);
+        }
 
         return TransferInitiatedResponse.builder()
                 .success(true)
-                .message("Transfer initiated – poll status for updates")
                 .transactionId(tx.getTransactionId())
-                .status(TransactionStatus.IN_PROGRESS.name())
+                .status(tx.getStatus().name())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
 
+    // ---------------- GET STATUS ----------------
     @Override
     @Transactional(readOnly = true)
     public TransactionStatusResponse getStatus(String transactionId) {
+
         Transaction tx = transactionRepo.findByTransactionId(transactionId)
                 .orElseThrow(() -> TransactionException.notFound("Transaction not found"));
-
-        // Fetch live current balance
-        BigDecimal currentBal = accountClient.getBalance(tx.getAccountNumber());
 
         return TransactionStatusResponse.builder()
                 .transactionId(tx.getTransactionId())
                 .status(tx.getStatus().name())
                 .amount(tx.getAmount())
-                .previousBalance(tx.getPreviousBalance())
-                .currentBalance(currentBal)
                 .failureReason(tx.getFailureReason())
-                .message(tx.getStatus() == TransactionStatus.SUCCESS ? "Transaction completed successfully" : null)
                 .createdAt(tx.getCreatedAt())
                 .completedAt(tx.getCompletedAt())
+                .message(tx.getStatus() == TransactionStatus.SUCCESS
+                        ? "Transaction completed successfully"
+                        : "Transaction failed")
                 .build();
     }
 
+    // ---------------- HELPERS ----------------
 
-    private Transaction createTxn(
-            String account,
-            UUID customerId,
-            TransactionType type,
-            BigDecimal amount,
-            BigDecimal charges,
-            String idempotencyKey
-    ) {
-        Transaction tx = Transaction.builder()
-                .transactionId(generateTxnId())
-                .accountNumber(account)
-                .customerId(customerId)
-                .transactionType(type)
-                .amount(amount)
-                .charges(charges)
-                .totalAmount(amount.add(charges))
-                .status(TransactionStatus.IN_PROGRESS)
-                .idempotencyKey(idempotencyKey)
-                .createdAt(LocalDateTime.now())
-                .build();
+    private Transaction createTxn(String account, UUID customerId,
+                                  TransactionType type,
+                                  BigDecimal amount,
+                                  BigDecimal charges) {
 
-        return transactionRepo.save(tx);
+        return transactionRepo.save(
+                Transaction.builder()
+                        .transactionId(generateTxnId())
+                        .accountNumber(account)
+                        .customerId(customerId)
+                        .transactionType(type)
+                        .amount(amount)
+                        .charges(charges)
+                        .totalAmount(amount.add(charges))
+                        .status(TransactionStatus.IN_PROGRESS)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
     }
 
-    private Transaction findIdempotentTxn(String key) {
-        return transactionRepo.findByIdempotencyKey(key).orElse(null);
-    }
-
-    private void verifyOwnership(UUID customerId, String accountNumber) {
-        UUID owner = accountClient.getAccountOwner(accountNumber);
-        if (!owner.equals(customerId)) {
-            throw TransactionException.unauthorized("Not your account");
-        }
-    }
-
-    private void checkTransactionLimits(String accountNumber, BigDecimal amount) {
-        TransactionLimit limit = limitRepo.findById(accountNumber)
-                .orElse(new TransactionLimit(accountNumber));
-
-        if (amount.compareTo(limit.getPerTransactionLimit()) > 0) {
-            throw TransactionException.limitExceeded("Per transaction limit exceeded");
-        }
-    }
-
-    private CreditTransactionResponse buildAsyncResponse(String txnId, TransactionStatus status) {
+    private CreditTransactionResponse buildAsyncResponse(Transaction tx) {
         return CreditTransactionResponse.builder()
                 .success(true)
-                .transactionId(txnId)
-                .status(status.name())
-                .message("Transaction initiated")
+                .transactionId(tx.getTransactionId())
+                .status(tx.getStatus().name())
+                .message("Transaction processed")
                 .timestamp(LocalDateTime.now())
                 .build();
     }
 
-    private DebitTransactionResponse buildAsyncDebitResponse(String txnId, TransactionStatus status) {
+    private DebitTransactionResponse buildAsyncDebitResponse(Transaction tx) {
         return DebitTransactionResponse.builder()
                 .success(true)
-                .transactionId(txnId)
-                .status(status.name())
-                .message("Transaction initiated")
+                .transactionId(tx.getTransactionId())
+                .status(tx.getStatus().name())
+                .message("Transaction processed")
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -240,8 +257,19 @@ public class TransactionServiceImpl implements TransactionService {
         return "TXN-" + System.currentTimeMillis();
     }
 
-    private String generateIdempotencyKey(Object req) {
-        return req.hashCode() + "-" + LocalDate.now();
+    private void verifyOwnership(UUID customerId, String accountNumber) {
+        UUID owner = accountClient.getAccountOwner(accountNumber);
+        if (!owner.equals(customerId)) {
+            throw TransactionException.unauthorized("Not your account");
+        }
+    }
+
+    private void checkTransactionLimits(String accountNumber, BigDecimal amount) {
+        TransactionLimit limit = limitRepo.findById(accountNumber)
+                .orElse(new TransactionLimit(accountNumber));
+        if (amount.compareTo(limit.getPerTransactionLimit()) > 0) {
+            throw TransactionException.limitExceeded("Limit exceeded");
+        }
     }
 
     private BigDecimal calculateTransferCharges(TransferMode mode, BigDecimal amount) {

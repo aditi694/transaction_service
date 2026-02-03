@@ -12,9 +12,33 @@ import java.util.UUID;
         path = "/api/internal/accounts"
 )
 public interface AccountClient {
-        @PostMapping("/update-balance")
-        void updateBalance(@RequestBody BalanceUpdateRequest request);
 
+        // ✅ CREDIT
+        @PostMapping("/{accountNumber}/credit")
+        void credit(
+                @PathVariable String accountNumber,
+                @RequestParam BigDecimal amount,
+                @RequestParam String transactionId
+        );
+
+        // ✅ DEBIT
+        @PostMapping("/{accountNumber}/debit")
+        void debit(
+                @PathVariable String accountNumber,
+                @RequestParam BigDecimal amount,
+                @RequestParam String transactionId
+        );
+
+        @PostMapping("/transfer")
+        void transfer(
+                @RequestParam String fromAccount,
+                @RequestParam String toAccount,
+                @RequestParam BigDecimal amount,
+                @RequestParam BigDecimal charges,
+                @RequestParam String transactionId
+        );
+
+        // ✅ READ-ONLY calls
         @GetMapping("/{accountNumber}/balance")
         BigDecimal getBalance(@PathVariable String accountNumber);
 
@@ -23,4 +47,7 @@ public interface AccountClient {
 
         @GetMapping("/{accountNumber}/exists")
         boolean accountExists(@PathVariable String accountNumber);
+
+        @PostMapping("/update-balance")
+        void updateBalance(@RequestBody BalanceUpdateRequest request);
 }

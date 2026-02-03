@@ -5,9 +5,7 @@ import com.bank.transaction_service.entity.Transaction;
 import com.bank.transaction_service.entity.TransactionSaga;
 import com.bank.transaction_service.enums.SagaStatus;
 import com.bank.transaction_service.enums.SagaStep;
-import com.bank.transaction_service.kafka.producer.TransactionCommandProducer;
 import com.bank.transaction_service.repository.TransactionSagaRepository;
-import com.bank.transaction_service.kafka.event.TransactionCommandEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,17 +13,16 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TransactionSagaService {
 
     private final TransactionSagaRepository sagaRepo;
-    private final TransactionCommandProducer commandProducer;
 
     public TransactionSaga start(Transaction tx) {
-        return sagaRepo.save(TransactionSaga.builder()
+
+        TransactionSaga saga = TransactionSaga.builder()
                 .sagaId("SAGA-" + tx.getTransactionId())
                 .transactionId(tx.getTransactionId())
                 .fromAccount(tx.getAccountNumber())
@@ -35,46 +32,22 @@ public class TransactionSagaService {
                 .currentStep(SagaStep.INITIATED)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .build());
+                .build();
+
+        return sagaRepo.save(saga);
     }
 
-    public void sendDebit(TransactionSaga saga, BigDecimal amount) {
-        commandProducer.send(new TransactionCommandEvent(
-                1,
-                UUID.randomUUID().toString(),
-                saga.getTransactionId(),
-                "DEBIT",
-                saga.getFromAccount(),
-                amount
-        ));
-        updateStep(saga, SagaStep.DEBIT_SENT);
+    public void markCompleted(TransactionSaga saga) {
+        saga.setStatus(SagaStatus.COMPLETED);
+        saga.setCurrentStep(SagaStep.COMPLETED);
+        saga.setUpdatedAt(LocalDateTime.now());
+        sagaRepo.save(saga);
     }
 
-    public void sendCredit(TransactionSaga saga, BigDecimal amount) {
-        commandProducer.send(new TransactionCommandEvent(
-                1,
-                UUID.randomUUID().toString(),
-                saga.getTransactionId(),
-                "CREDIT",
-                saga.getToAccount(),
-                amount
-        ));
-        updateStep(saga, SagaStep.CREDIT_SENT);
-    }
-
-    public void sendCompensation(TransactionSaga saga, BigDecimal amount) {
-        commandProducer.send(new TransactionCommandEvent(
-                1,
-                UUID.randomUUID().toString(),
-                saga.getTransactionId(),
-                "COMPENSATE_DEBIT",
-                saga.getFromAccount(),
-                amount
-        ));
-    }
-
-    private void updateStep(TransactionSaga saga, SagaStep step) {
-        saga.setCurrentStep(step);
+    public void markFailed(TransactionSaga saga, String reason) {
+        saga.setStatus(SagaStatus.FAILED);
+        saga.setFailureReason(reason);
+        saga.setCurrentStep(SagaStep.FAILED);
         saga.setUpdatedAt(LocalDateTime.now());
         sagaRepo.save(saga);
     }
