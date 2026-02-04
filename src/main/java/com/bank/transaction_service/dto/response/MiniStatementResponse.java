@@ -21,7 +21,7 @@ public class MiniStatementResponse {
         private String date;
         private String description;
         private BigDecimal amount;
-        private BigDecimal balance;
+//        private BigDecimal balance;
         private String type;
     }
 }

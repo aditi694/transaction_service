@@ -8,15 +8,13 @@ import java.util.UUID;
 
 public interface BeneficiaryService {
 
-    // Customer operations
     BeneficiaryResponse add(BeneficiaryRequest request);
 
     List<BeneficiaryResponse> list(String customerId);
 
     BeneficiaryResponse get(String beneficiaryId);
 
-    // Admin operations
-    void adminVerify(String beneficiaryId, UUID adminId);
+    void adminVerify(String beneficiaryId);
 
     void reject(String beneficiaryId);
 

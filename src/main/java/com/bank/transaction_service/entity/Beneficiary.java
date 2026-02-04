@@ -36,5 +36,4 @@ public class Beneficiary {
     private LocalDateTime updatedAt;
 
     private LocalDateTime verifiedAt;
-    private String verifiedBy;
 }

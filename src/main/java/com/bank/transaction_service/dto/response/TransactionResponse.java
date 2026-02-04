@@ -18,7 +18,7 @@ public class TransactionResponse {
     private String description;
 
     private String amount;
-    private BigDecimal balanceAfter;
+//    private BigDecimal balanceAfter;
 
     private String status;
     private String statusMessage;

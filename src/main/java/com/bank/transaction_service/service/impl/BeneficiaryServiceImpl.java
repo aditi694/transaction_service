@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_PENDING_MSG;
 import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_VERIFIED_MSG;
@@ -108,18 +107,23 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
     }
 
     @Override
-    public void adminVerify(String beneficiaryId, UUID adminId) {
+    public void adminVerify(String beneficiaryId) {
+
         Beneficiary b = repository.findById(beneficiaryId)
                 .orElseThrow(() ->
                         TransactionException.badRequest("Beneficiary not found"));
 
+        if (b.isVerified()) {
+            throw TransactionException.badRequest("Beneficiary already verified");
+        }
+
         b.setVerified(true);
         b.setVerifiedAt(LocalDateTime.now());
-        b.setVerifiedBy(adminId.toString());
         b.setUpdatedAt(LocalDateTime.now());
 
         repository.save(b);
-        log.info("Beneficiary verified by admin: {}", beneficiaryId);
+
+        log.info("Beneficiary verified: {}", beneficiaryId);
     }
 
     @Override

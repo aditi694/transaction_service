@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.bank.transaction_service.util.AppConstants.*;
-
 @RestController
 @RequestMapping("/api/admin/beneficiaries")
 @RequiredArgsConstructor
@@ -22,7 +21,9 @@ public class AdminController {
     private final BeneficiaryService beneficiaryService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> list(@RequestParam(defaultValue = "false") boolean pendingOnly) {
+    public ResponseEntity<Map<String, Object>> list(
+            @RequestParam(defaultValue = "false") boolean pendingOnly
+    ) {
         requireAdmin();
 
         List<BeneficiaryResponse> list = pendingOnly
@@ -30,8 +31,12 @@ public class AdminController {
                 : beneficiaryService.listAll();
 
         String message = pendingOnly
-                ? (list.isEmpty() ? "No pending beneficiary approvals" : "Pending beneficiaries fetched")
-                : (list.isEmpty() ? "No beneficiaries found" : "All beneficiaries fetched");
+                ? (list.isEmpty()
+                ? "No pending beneficiary approvals"
+                : "Pending beneficiaries fetched")
+                : (list.isEmpty()
+                ? "No beneficiaries found"
+                : "All beneficiaries fetched");
 
         return ResponseEntity.ok(Map.of(
                 SUCCESS, true,
@@ -43,8 +48,9 @@ public class AdminController {
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<Map<String, Object>> approve(@PathVariable String id) {
-        AuthUser admin = requireAdmin();
-        beneficiaryService.adminVerify(id, admin.getCustomerId());
+        requireAdmin();
+
+        beneficiaryService.adminVerify(id);
 
         return ResponseEntity.ok(Map.of(
                 SUCCESS, true,
@@ -55,6 +61,7 @@ public class AdminController {
     @PostMapping("/{id}/reject")
     public ResponseEntity<Map<String, Object>> reject(@PathVariable String id) {
         requireAdmin();
+
         beneficiaryService.reject(id);
 
         return ResponseEntity.ok(Map.of(
@@ -64,7 +71,12 @@ public class AdminController {
     }
 
     private AuthUser requireAdmin() {
-        AuthUser user = (AuthUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        AuthUser user =
+                (AuthUser) SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getPrincipal();
+
         if (!user.isAdmin()) {
             throw new RuntimeException("Admin access required");
         }

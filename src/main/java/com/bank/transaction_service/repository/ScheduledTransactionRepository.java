@@ -19,10 +19,5 @@ public interface ScheduledTransactionRepository extends JpaRepository<ScheduledT
     """)
     List<ScheduledTransaction> findDueTransactions(@Param("today") LocalDate today);
 
-    List<ScheduledTransaction> findByAccountNumberAndStatus(
-            String accountNumber,
-            ScheduledStatus status
-    );
-
     List<ScheduledTransaction> findByAccountNumber(String accountNumber);
 }

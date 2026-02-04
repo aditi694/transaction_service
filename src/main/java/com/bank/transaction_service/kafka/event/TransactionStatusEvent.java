@@ -8,7 +8,7 @@ public record TransactionStatusEvent(
         String fromAccount,
         String toAccount,
         BigDecimal amount,
-        String finalStatus,      // SUCCESS | FAILED
+        String finalStatus,
         String failureReason,
         LocalDateTime createdAt,
         LocalDateTime completedAt

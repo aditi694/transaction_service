@@ -10,10 +10,10 @@ import java.time.LocalDateTime;
 public class TransferInitiatedResponse {
 
     private boolean success;
-    private String message;
+//    private String message;
     private String transactionId;
     private String status;
-    private String nextStep;
-    private String statusEndpoint;
+//    private String nextStep;
+//    private String statusEndpoint;
     private LocalDateTime timestamp;
 }

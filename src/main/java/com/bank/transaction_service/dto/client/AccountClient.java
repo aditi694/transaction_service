@@ -17,16 +17,14 @@ public interface AccountClient {
         @PostMapping("/{accountNumber}/credit")
         void credit(
                 @PathVariable String accountNumber,
-                @RequestParam BigDecimal amount,
-                @RequestParam String transactionId
+                @RequestParam BigDecimal amount
         );
 
         // ✅ DEBIT
         @PostMapping("/{accountNumber}/debit")
         void debit(
                 @PathVariable String accountNumber,
-                @RequestParam BigDecimal amount,
-                @RequestParam String transactionId
+                @RequestParam BigDecimal amount
         );
 
         @PostMapping("/transfer")
@@ -34,11 +32,9 @@ public interface AccountClient {
                 @RequestParam String fromAccount,
                 @RequestParam String toAccount,
                 @RequestParam BigDecimal amount,
-                @RequestParam BigDecimal charges,
-                @RequestParam String transactionId
+                @RequestParam BigDecimal charges
         );
 
-        // ✅ READ-ONLY calls
         @GetMapping("/{accountNumber}/balance")
         BigDecimal getBalance(@PathVariable String accountNumber);
 

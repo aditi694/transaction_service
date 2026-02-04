@@ -23,9 +23,6 @@ public class TransactionLimit {
     private BigDecimal atmLimit = BigDecimal.valueOf(25000);
     private BigDecimal onlineShoppingLimit = BigDecimal.valueOf(30000);
 
-    private boolean internationalEnabled;
-    private boolean contactlessEnabled;
-
     private LocalDateTime updatedAt;
 
     public TransactionLimit(String accountNumber) {
@@ -38,7 +35,6 @@ public class TransactionLimit {
         this.monthlyLimit = req.getMonthlyLimit();
         this.atmLimit = req.getAtmLimit();
         this.onlineShoppingLimit = req.getOnlineShoppingLimit();
-        this.internationalEnabled = req.isInternationalEnabled();
         this.updatedAt = LocalDateTime.now();
     }
 }

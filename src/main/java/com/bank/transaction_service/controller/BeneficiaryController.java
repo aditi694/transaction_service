@@ -5,6 +5,7 @@ import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.BeneficiaryService;
 import com.bank.transaction_service.util.AppConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,7 +25,7 @@ public class BeneficiaryController {
     private final BeneficiaryService beneficiaryService;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> add(@RequestBody BeneficiaryRequest request) {
+    public ResponseEntity<Map<String, Object>> add(@RequestBody @Valid BeneficiaryRequest request) {
         AuthUser user = getAuthUser();
         request.setCustomerId(user.getCustomerId().toString());
 

@@ -8,48 +8,6 @@ import java.math.BigDecimal;
 
 public final class TransactionValidator {
 
-    private TransactionValidator() {}
-
-
-    public static void validateAccountNumber(String accountNumber) {
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw TransactionException.badRequest(
-                    "Account number is required"
-            );
-        }
-    }
-
-    public static void validateAmount(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw TransactionException.badRequest(
-                    "Transacti`on amount must be greater than zero"
-            );
-        }
-    }
-
-
-    public static void validateBalance(
-            BigDecimal balance,
-            BigDecimal amount
-    ) {
-        if (balance.compareTo(amount) < 0) {
-            throw TransactionException.insufficientBalance();
-        }
-    }
-
-
-
-    public static void validateTransfer(
-            String fromAccount,
-            String toAccount
-    ) {
-        if (fromAccount.equals(toAccount)) {
-            throw TransactionException.badRequest(
-                    "Sender and receiver account cannot be same"
-            );
-        }
-    }
-
     public static void validateBeneficiary(
             BeneficiaryRequest req
     ) {
@@ -59,19 +17,6 @@ public final class TransactionValidator {
 
             throw TransactionException.badRequest(
                     "Invalid beneficiary details"
-            );
-        }
-    }
-
-
-    public static void validateLimits(
-            LimitUpdateRequest req
-    ) {
-        if (req.getPerTransactionLimit()
-                .compareTo(req.getDailyLimit()) > 0) {
-
-            throw TransactionException.badRequest(
-                    "Per transaction limit cannot exceed daily limit"
             );
         }
     }

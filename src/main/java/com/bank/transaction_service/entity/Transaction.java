@@ -48,23 +48,14 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
-    private BigDecimal balanceBefore;
-    private BigDecimal balanceAfter;
-
     private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionStatus status;
 
-    // Transfer only
     private String toAccount;
-    private String beneficiaryName;
 
-    @Enumerated(EnumType.STRING)
-    private TransferMode transferMode;
-
-    private String utrNumber;
     private BigDecimal previousBalance;
     private BigDecimal currentBalance;
 

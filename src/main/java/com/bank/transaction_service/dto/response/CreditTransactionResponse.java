@@ -10,10 +10,6 @@ public class CreditTransactionResponse {
     private boolean success;
     private String message;
     private String transactionId;
-//    private BigDecimal amount;
-//    private BigDecimal previousBalance;
-//    private BigDecimal currentBalance;
     private String status;
     private LocalDateTime timestamp;
-//    private String referenceNumber;
 }

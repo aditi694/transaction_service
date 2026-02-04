@@ -17,6 +17,4 @@ public interface BeneficiaryRepository extends JpaRepository<Beneficiary, String
             String customerId,
             String beneficiaryAccount
     );
-
-    List<Beneficiary> findByCustomerIdAndIsActive(String customerId, boolean isActive);
 }
