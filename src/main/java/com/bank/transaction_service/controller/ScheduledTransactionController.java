@@ -1,14 +1,18 @@
 package com.bank.transaction_service.controller;
 
 import com.bank.transaction_service.dto.request.ScheduleTransactionRequest;
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.ScheduleTransactionResponse;
 import com.bank.transaction_service.entity.ScheduledTransaction;
 import com.bank.transaction_service.enums.Frequency;
 import com.bank.transaction_service.enums.ScheduledStatus;
 import com.bank.transaction_service.exception.TransactionException;
-import com.bank.transaction_service.repository.ScheduledTransactionRepository;
 import com.bank.transaction_service.security.AuthUser;
+import com.bank.transaction_service.repository.ScheduledTransactionRepository;
+import com.bank.transaction_service.util.AppConstants;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +29,7 @@ public class ScheduledTransactionController {
     private final ScheduledTransactionRepository repository;
 
     @PostMapping
-    public ScheduleTransactionResponse schedule(
+    public ResponseEntity<BaseResponse<ScheduleTransactionResponse>> schedule(
             @RequestBody ScheduleTransactionRequest request
     ) {
         AuthUser user = getAuthUser();
@@ -46,51 +50,81 @@ public class ScheduledTransactionController {
 
         ScheduledTransaction saved = repository.save(scheduled);
 
-        return ScheduleTransactionResponse.builder()
-                .scheduleId(saved.getId().toString())
-                .accountNumber(saved.getAccountNumber())
-                .frequency(saved.getFrequency().name())
-                .nextExecutionDate(saved.getNextExecutionDate())
-                .status(saved.getStatus().name())
-                .build();
+        return ResponseEntity.ok(
+                BaseResponse.success(
+                        buildResponse(saved),
+                        "Scheduled transaction created successfully"
+                )
+        );
     }
 
     @GetMapping
-    public List<ScheduledTransaction> mySchedules() {
+    public ResponseEntity<BaseResponse<List<ScheduledTransaction>>> mySchedules() {
         AuthUser user = getAuthUser();
-        return repository.findByAccountNumber(user.getCustomerId().toString());
+
+        List<ScheduledTransaction> schedules =
+                repository.findByAccountNumber(user.getCustomerId().toString());
+
+        String message = schedules.isEmpty()
+                ? "No scheduled transactions found"
+                : "Scheduled transactions fetched successfully";
+
+        return ResponseEntity.ok(
+                BaseResponse.success(schedules, message)
+        );
     }
 
     @PutMapping("/{scheduleId}/pause")
-    public ScheduleTransactionResponse pause(@PathVariable UUID scheduleId) {
+    public ResponseEntity<BaseResponse<ScheduleTransactionResponse>> pause(
+            @PathVariable UUID scheduleId
+    ) {
         ScheduledTransaction schedule = repository.findById(scheduleId)
                 .orElseThrow(() -> TransactionException.badRequest("Schedule not found"));
 
         schedule.setStatus(ScheduledStatus.PAUSED);
         repository.save(schedule);
 
-        return buildResponse(schedule);
+        return ResponseEntity.ok(
+                BaseResponse.success(
+                        buildResponse(schedule),
+                        "Scheduled transaction paused successfully"
+                )
+        );
     }
 
     @PutMapping("/{scheduleId}/resume")
-    public ScheduleTransactionResponse resume(@PathVariable UUID scheduleId) {
+    public ResponseEntity<BaseResponse<ScheduleTransactionResponse>> resume(
+            @PathVariable UUID scheduleId
+    ) {
         ScheduledTransaction schedule = repository.findById(scheduleId)
                 .orElseThrow(() -> TransactionException.badRequest("Schedule not found"));
 
         schedule.setStatus(ScheduledStatus.ACTIVE);
         repository.save(schedule);
 
-        return buildResponse(schedule);
+        return ResponseEntity.ok(
+                BaseResponse.success(
+                        buildResponse(schedule),
+                        "Scheduled transaction resumed successfully"
+                )
+        );
     }
 
     @DeleteMapping("/{scheduleId}")
-    public void cancel(@PathVariable UUID scheduleId) {
+    public ResponseEntity<BaseResponse<Void>> cancel(
+            @PathVariable UUID scheduleId
+    ) {
         ScheduledTransaction schedule = repository.findById(scheduleId)
                 .orElseThrow(() -> TransactionException.badRequest("Schedule not found"));
 
         schedule.setStatus(ScheduledStatus.CANCELLED);
         repository.save(schedule);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(null, "Scheduled transaction cancelled successfully")
+        );
     }
+
 
     private ScheduleTransactionResponse buildResponse(ScheduledTransaction s) {
         return ScheduleTransactionResponse.builder()
@@ -106,17 +140,13 @@ public class ScheduledTransactionController {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw TransactionException.unauthorized("User not authenticated");
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                !(authentication.getPrincipal() instanceof AuthUser)) {
+
+            throw new AccessDeniedException(AppConstants.UNAUTHORIZED);
         }
 
-        Object principal = authentication.getPrincipal();
-
-        if (principal instanceof AuthUser authUser) {
-            return authUser;
-        }
-
-        throw TransactionException.unauthorized("Invalid authentication principal");
+        return (AuthUser) authentication.getPrincipal();
     }
-
 }

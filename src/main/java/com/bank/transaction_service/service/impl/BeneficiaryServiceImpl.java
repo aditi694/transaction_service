@@ -83,9 +83,9 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
 
         repository.save(entity);
 
-        BeneficiaryResponse response = BeneficiaryResponse.from(entity);
-        response.setMessage(autoVerified ? BENEFICIARY_VERIFIED_MSG : BENEFICIARY_PENDING_MSG);
-        response.setStatusMessage(autoVerified ? "VERIFIED" : "PENDING_VERIFICATION");
+//        BeneficiaryResponse response = BeneficiaryResponse.from(entity);
+//        response.setMessage(autoVerified ? BENEFICIARY_VERIFIED_MSG : BENEFICIARY_PENDING_MSG);
+//        response.setStatusMessage(autoVerified ? "VERIFIED" : "PENDING_VERIFICATION");
 
         return BeneficiaryResponse.from(entity);
     }

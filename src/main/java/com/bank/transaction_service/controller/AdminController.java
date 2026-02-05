@@ -1,5 +1,6 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.BeneficiaryService;
@@ -10,9 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
-import static com.bank.transaction_service.util.AppConstants.*;
 @RestController
 @RequestMapping("/api/admin/beneficiaries")
 @RequiredArgsConstructor
@@ -21,7 +20,7 @@ public class AdminController {
     private final BeneficiaryService beneficiaryService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> list(
+    public ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> list(
             @RequestParam(defaultValue = "false") boolean pendingOnly
     ) {
         requireAdmin();
@@ -38,48 +37,44 @@ public class AdminController {
                 ? "No beneficiaries found"
                 : "All beneficiaries fetched");
 
-        return ResponseEntity.ok(Map.of(
-                SUCCESS, true,
-                MESSAGE, message,
-                "count", list.size(),
-                "beneficiaries", list
-        ));
+        return ResponseEntity.ok(
+                BaseResponse.success(list, message)
+        );
+
     }
 
     @PostMapping("/{id}/approve")
-    public ResponseEntity<Map<String, Object>> approve(@PathVariable String id) {
+    public ResponseEntity<BaseResponse<Void>> approve(@PathVariable String id) {
         requireAdmin();
 
         beneficiaryService.adminVerify(id);
 
-        return ResponseEntity.ok(Map.of(
-                SUCCESS, true,
-                MESSAGE, BENEFICIARY_VERIFIED_MSG
-        ));
+        return ResponseEntity.ok(
+                BaseResponse.success(null, AppConstants.BENEFICIARY_VERIFIED_MSG)
+        );
     }
 
     @PostMapping("/{id}/reject")
-    public ResponseEntity<Map<String, Object>> reject(@PathVariable String id) {
+    public ResponseEntity<BaseResponse<Void>> reject(@PathVariable String id) {
         requireAdmin();
 
         beneficiaryService.reject(id);
 
-        return ResponseEntity.ok(Map.of(
-                SUCCESS, true,
-                MESSAGE, BENEFICIARY_REJECTED_MSG
-        ));
+        return ResponseEntity.ok(
+                BaseResponse.success(null, AppConstants.BENEFICIARY_REJECTED_MSG)
+        );
     }
 
-    private AuthUser requireAdmin() {
-        AuthUser user =
-                (AuthUser) SecurityContextHolder
-                        .getContext()
-                        .getAuthentication()
-                        .getPrincipal();
+    private void requireAdmin() {
+        AuthUser user = (AuthUser) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
 
         if (!user.isAdmin()) {
-            throw new RuntimeException("Admin access required");
+            throw new org.springframework.security.access.AccessDeniedException(
+                    AppConstants.FORBIDDEN
+            );
         }
-        return user;
     }
 }

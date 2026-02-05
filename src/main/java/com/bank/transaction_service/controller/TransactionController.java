@@ -2,12 +2,9 @@ package com.bank.transaction_service.controller;
 
 import com.bank.transaction_service.dto.request.*;
 import com.bank.transaction_service.dto.response.*;
-import com.bank.transaction_service.exception.TransactionException;
-import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.service.TransactionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,21 +15,50 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping("/debit")
-    public DebitTransactionResponse debit(@RequestBody DebitTransactionRequest request) {
-        return transactionService.debit(request);
+    public ResponseEntity<BaseResponse<DebitTransactionResponse>> debit(
+            @RequestBody DebitTransactionRequest request
+    ) {
+        DebitTransactionResponse response =
+                transactionService.debit(request);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(response, "Debit transaction initiated")
+        );
     }
 
     @PostMapping("/credit")
-    public CreditTransactionResponse credit(@RequestBody CreditTransactionRequest request) {
-        return transactionService.credit(request);
+    public ResponseEntity<BaseResponse<CreditTransactionResponse>> credit(
+            @RequestBody CreditTransactionRequest request
+    ) {
+        CreditTransactionResponse response =
+                transactionService.credit(request);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(response, "Credit transaction initiated")
+        );
     }
 
     @PostMapping("/transfer")
-    public TransferInitiatedResponse transfer(@RequestBody TransferTransactionRequest request) {
-        return transactionService.transfer(request);
+    public ResponseEntity<BaseResponse<TransferInitiatedResponse>> transfer(
+            @RequestBody TransferTransactionRequest request
+    ) {
+        TransferInitiatedResponse response =
+                transactionService.transfer(request);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(response, "Transfer transaction initiated")
+        );
     }
+
     @GetMapping("/{transactionId}/status")
-    public TransactionStatusResponse getStatus(@PathVariable String transactionId) {
-        return transactionService.getStatus(transactionId);
+    public ResponseEntity<BaseResponse<TransactionStatusResponse>> getStatus(
+            @PathVariable String transactionId
+    ) {
+        TransactionStatusResponse response =
+                transactionService.getStatus(transactionId);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(response, "Transaction status fetched successfully")
+        );
     }
 }

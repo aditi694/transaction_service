@@ -18,22 +18,25 @@ public class BeneficiaryResponse {
     private boolean active;
     private String verificationStatus; // PENDING, VERIFIED, REJECTED
     private LocalDateTime createdAt;
-    private LocalDateTime verifiedAt;
-    private String message;
-    private String statusMessage;
 
-    public static BeneficiaryResponse from(com.bank.transaction_service.entity.Beneficiary b) {
+
+    public static BeneficiaryResponse from(Beneficiary entity) {
+
+        String status =
+                !entity.isActive() ? "REJECTED"
+                        : entity.isVerified() ? "VERIFIED"
+                        : "PENDING";
+
         return BeneficiaryResponse.builder()
-                .beneficiaryId(b.getBeneficiaryId())
-                .beneficiaryName(b.getBeneficiaryName())
-                .beneficiaryAccount(b.getBeneficiaryAccount())
-                .ifscCode(b.getIfscCode())
-                .bankName(b.getBankName())
-                .verified(b.isVerified())
-                .active(b.isActive())
-                .verificationStatus(b.isVerified() ? "VERIFIED" : "PENDING")
-                .createdAt(b.getCreatedAt())
-                .verifiedAt(b.getVerifiedAt())
+                .beneficiaryId(entity.getBeneficiaryId())
+                .beneficiaryName(entity.getBeneficiaryName())
+                .beneficiaryAccount(entity.getBeneficiaryAccount())
+                .ifscCode(entity.getIfscCode())
+                .bankName(entity.getBankName())
+                .verified(entity.isVerified())
+                .active(entity.isActive())
+                .verificationStatus(status)
+                .createdAt(entity.getCreatedAt())
                 .build();
     }
 }
