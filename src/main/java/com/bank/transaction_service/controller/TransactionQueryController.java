@@ -26,7 +26,7 @@ public class TransactionQueryController {
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "1") int page
     ) {
-        getAuthUser(); // authentication check only
+        getAuthUser();
 
         TransactionHistoryResponse response =
                 queryService.getHistory(accountNumber, limit, page);
@@ -55,7 +55,6 @@ public class TransactionQueryController {
                 )
         );
     }
-
 
     private AuthUser getAuthUser() {
         Authentication authentication =

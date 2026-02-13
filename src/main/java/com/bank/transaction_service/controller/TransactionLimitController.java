@@ -55,8 +55,6 @@ public class TransactionLimitController {
         );
     }
 
-    // -------- Helper --------
-
     private AuthUser getAuthUser() {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
