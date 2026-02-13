@@ -1,10 +1,7 @@
 package com.bank.transaction_service.validation;
 
 import com.bank.transaction_service.dto.request.BeneficiaryRequest;
-import com.bank.transaction_service.dto.request.LimitUpdateRequest;
 import com.bank.transaction_service.exception.TransactionException;
-
-import java.math.BigDecimal;
 
 public final class TransactionValidator {
 

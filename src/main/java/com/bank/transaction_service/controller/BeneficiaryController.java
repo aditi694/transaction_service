@@ -41,7 +41,6 @@ public class BeneficiaryController {
         );
     }
 
-
     @GetMapping
     public ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> listOwn() {
         AuthUser user = getAuthUser();
@@ -58,7 +57,6 @@ public class BeneficiaryController {
                 )
         );
     }
-
 
     private AuthUser getAuthUser() {
         Authentication auth = SecurityContextHolder

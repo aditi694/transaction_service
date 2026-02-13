@@ -22,7 +22,6 @@ public class AnalyticsController {
             @RequestParam String month
     ) {
         YearMonth yearMonth = YearMonth.parse(month);
-
         TransactionAnalyticsResponse response =
                 analyticsService.getMonthlyAnalytics(accountNumber, yearMonth);
 

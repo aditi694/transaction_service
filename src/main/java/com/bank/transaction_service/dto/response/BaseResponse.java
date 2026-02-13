@@ -29,11 +29,6 @@ public class BaseResponse<T> {
     @AllArgsConstructor
     public static class ResultInfo {
         private String resultMsg;
-//        private String resultCode;
 
-//        public ResultInfo(String resultMsg) {
-//            this.resultMsg = resultMsg;
-////            this.resultCode = "SUCCESS";
-//        }
     }
 }

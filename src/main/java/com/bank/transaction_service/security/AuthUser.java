@@ -43,7 +43,6 @@ public class AuthUser extends AbstractAuthenticationToken {
     }
 
     public boolean isAdmin() {
-        // Check both with and without ROLE_ prefix
         return "ROLE_ADMIN".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role);
     }
 
