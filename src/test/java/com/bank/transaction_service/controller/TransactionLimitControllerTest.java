@@ -1,12 +1,10 @@
 package com.bank.transaction_service.controller;
 
-import com.bank.transaction_service.dto.request.LimitUpdateRequest;
 import com.bank.transaction_service.dto.response.TransactionLimitResponse;
 import com.bank.transaction_service.security.AuthUser;
 import com.bank.transaction_service.security.JwtFilter;
 import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.TransactionLimitService;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
