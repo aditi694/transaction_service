@@ -26,9 +26,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BeneficiaryServiceImplTest {
 
-    @Mock private BeneficiaryRepository repository;
-    @Mock private AccountClient accountClient;
-    @Mock private CustomerClient customerClient;
+    @Mock
+    private BeneficiaryRepository repository;
+    @Mock
+    private AccountClient accountClient;
+    @Mock
+    private CustomerClient customerClient;
 
     @InjectMocks
     private BeneficiaryServiceImpl service;
@@ -46,7 +49,7 @@ class BeneficiaryServiceImplTest {
     }
 
     private void mockBaseSuccess() {
-        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1","BEN1"))
+        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1", "BEN1"))
                 .thenReturn(false);
         when(accountClient.accountExists("BEN1"))
                 .thenReturn(true);
@@ -54,14 +57,14 @@ class BeneficiaryServiceImplTest {
 
     @Test
     void add_whenDuplicate() {
-        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1","BEN1"))
+        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1", "BEN1"))
                 .thenReturn(true);
         assertThrows(TransactionException.class, () -> service.add(req));
     }
 
     @Test
     void add_whenAccountMissing() {
-        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1","BEN1"))
+        when(repository.existsByCustomerIdAndBeneficiaryAccount("C1", "BEN1"))
                 .thenReturn(false);
         when(accountClient.accountExists("BEN1"))
                 .thenReturn(false);
@@ -72,24 +75,25 @@ class BeneficiaryServiceImplTest {
     void add_whenCustomerFeignFails() {
         mockBaseSuccess();
         when(customerClient.getIfscByAccount("ACC1"))
-                .thenThrow(mock(FeignException.class));
+                .thenThrow(FeignException.class);
         assertThrows(TransactionException.class, () -> service.add(req));
     }
 
     @Test
-    void add_AutoVerifywhenSameBank() {
+    void add_AutoVerifyWhenSameBank() {
         mockBaseSuccess();
         when(customerClient.getIfscByAccount("ACC1"))
                 .thenReturn("HDFC0001");
         when(customerClient.getBankBranch("HDFC0001"))
                 .thenReturn(new BeneficiaryServiceImpl.BankBranchInfo("HDFC Bank", "Main"));
+
         BeneficiaryResponse response = service.add(req);
         assertTrue(response.isVerified());
         verify(repository).save(any(Beneficiary.class));
     }
 
     @Test
-    void add_PendingwhenDifferentBank() {
+    void add_PendingWhenDifferentBank() {
         mockBaseSuccess();
         req.setIfscCode("ICIC0001");
         when(customerClient.getIfscByAccount("ACC1"))
@@ -103,25 +107,26 @@ class BeneficiaryServiceImplTest {
     }
 
     @Test
-    void add_UnknownwhenIfscNull() {
+    void add_UnknownWhenIfscNull() {
         mockBaseSuccess();
         req.setIfscCode(null);
         when(customerClient.getIfscByAccount("ACC1"))
                 .thenReturn(null);
         when(customerClient.getBankBranch(null))
-                .thenThrow(mock(FeignException.class));
+                .thenThrow(FeignException.class);
         BeneficiaryResponse response = service.add(req);
         assertEquals("UNKNOWN", response.getBankName());
     }
 
     @Test
-    void add_UnknownwhenIfscTooShort() {
+    void add_UnknownWhenIfscTooShort() {
         mockBaseSuccess();
         req.setIfscCode("AB");
         when(customerClient.getIfscByAccount("ACC1"))
                 .thenReturn("AB");
         when(customerClient.getBankBranch("AB"))
-                .thenThrow(mock(FeignException.class));
+                .thenThrow(FeignException.class);
+
         BeneficiaryResponse response = service.add(req);
         assertEquals("UNKNOWN", response.getBankName());
     }
@@ -142,7 +147,7 @@ class BeneficiaryServiceImplTest {
         when(customerClient.getIfscByAccount("ACC1"))
                 .thenReturn(ifsc);
         when(customerClient.getBankBranch(ifsc))
-                .thenThrow(mock(FeignException.class));
+                .thenThrow(FeignException.class);
         BeneficiaryResponse response = service.add(req);
         assertNotNull(response);
     }
@@ -212,7 +217,7 @@ class BeneficiaryServiceImplTest {
 
     @Test
     void listPendingApprovals_ReturnMapped() {
-        when(repository.findByIsVerifiedAndIsActive(false,true))
+        when(repository.findByIsVerifiedAndIsActive(false, true))
                 .thenReturn(List.of(Beneficiary.builder().build()));
         assertEquals(1, service.listPendingApprovals().size());
     }

@@ -1,237 +1,168 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.request.BeneficiaryRequest;
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.BeneficiaryService;
 import com.bank.transaction_service.util.AppConstants;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(BeneficiaryController.class)
+@ExtendWith(MockitoExtension.class)
 class BeneficiaryControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private JwtFilter jwtFilter;
-    @MockBean
+    @Mock
     private BeneficiaryService beneficiaryService;
 
-    @Test
-    void add_beneficiary() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                user, null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        String json = """
-                {
-                      "accountNumber": "999999",
-                      "customerId": "dummy",
-                      "beneficiaryAccount": "123456",
-                      "ifscCode": "SBIN0001",
-                      "beneficiaryName": "John"
-                    }
-                """;
+    @InjectMocks
+    private BeneficiaryController beneficiaryController;
 
-        BeneficiaryResponse response = BeneficiaryResponse.builder()
-                .verificationStatus("VERIFIED")
-                .build();
+    private UUID customerId = UUID.randomUUID();
 
-        when(beneficiaryService.add(any()))
-                .thenReturn(response);
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.verificationStatus").value("VERIFIED"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value(AppConstants.BENEFICIARY_VERIFIED_MSG));
-        verify(beneficiaryService).add(any());
+    private void mockAuthUser(boolean authenticated) {
+        AuthUser mockUser = mock(AuthUser.class);
+        when(mockUser.getCustomerId()).thenReturn(customerId);
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(authenticated);
+        when(authentication.getPrincipal()).thenReturn(mockUser);
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+    }
+
+    @AfterEach
+    void clearContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void add_pendingBeneficiary() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                user, null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        String json = """
-                {
-                      "accountNumber": "999999",
-                      "customerId": "dummy",
-                      "beneficiaryAccount": "123456",
-                      "ifscCode": "SBIN0001",
-                      "beneficiaryName": "John"
-                    }
-                """;
+    void testAdd_Verified() {
+        mockAuthUser(true);
 
-        BeneficiaryResponse response = BeneficiaryResponse.builder()
-                .verificationStatus("PENDING")
-                .build();
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        BeneficiaryResponse response = new BeneficiaryResponse();
+        response.setVerificationStatus("VERIFIED");
 
-        when(beneficiaryService.add(any()))
-                .thenReturn(response);
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.verificationStatus").value("PENDING"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value(AppConstants.BENEFICIARY_PENDING_MSG));
+        when(beneficiaryService.add(any())).thenReturn(response);
+
+        ResponseEntity<BaseResponse<BeneficiaryResponse>> result =
+                beneficiaryController.add(request);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(AppConstants.BENEFICIARY_VERIFIED_MSG,
+                result.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void list_beneficiaries_success() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    void testAdd_Pending() {
+        mockAuthUser(true);
+
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        BeneficiaryResponse response = new BeneficiaryResponse();
+        response.setVerificationStatus("PENDING");
+
+        when(beneficiaryService.add(any())).thenReturn(response);
+
+        ResponseEntity<BaseResponse<BeneficiaryResponse>> result =
+                beneficiaryController.add(request);
+
+        Assertions.assertEquals(AppConstants.BENEFICIARY_PENDING_MSG,
+                result.getBody().getResultInfo().getResultMsg());
+    }
+
+    @Test
+    void testAdd_Unauthorized() {
+        SecurityContextHolder.clearContext();
+
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                beneficiaryController.add(request)
+        );
+    }
+
+    @Test
+    void testListOwn_WithData() {
+        mockAuthUser(true);
 
         when(beneficiaryService.list(any()))
-                .thenReturn(List.of(BeneficiaryResponse.builder().build()));
+                .thenReturn(List.of(new BeneficiaryResponse()));
 
-        mockMvc.perform(get("/api/beneficiaries"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Beneficiaries fetched successfully"));
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> result =
+                beneficiaryController.listOwn();
 
-        verify(beneficiaryService).list(any());
+        Assertions.assertEquals("Beneficiaries fetched successfully",
+                result.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void list_beneficiaries_empty() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    void testListOwn_Empty() {
+        mockAuthUser(true);
 
         when(beneficiaryService.list(any()))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/beneficiaries"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("No beneficiaries found"));
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> result =
+                beneficiaryController.listOwn();
+
+        Assertions.assertEquals("No beneficiaries found",
+                result.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void add_beneficiary_wrongPrincipal() throws Exception {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        "someStringUser", null);
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        String validJson = """
-                {
-                  "accountNumber": "999999",
-                  "customerId": "dummy",
-                  "beneficiaryAccount": "123456",
-                  "ifscCode": "SBIN0001",
-                  "beneficiaryName": "John"
-                }
-                """;
-
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(validJson))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void add_beneficiary_wrongPrincipal_authenticated() throws Exception {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        "someStringUser",
-                        null,
-                        List.of()
-                );
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        String json = """
-                {
-                  "accountNumber": "999999",
-                  "customerId": "dummy",
-                  "beneficiaryAccount": "123456",
-                  "ifscCode": "SBIN0001",
-                  "beneficiaryName": "John"
-                }
-                """;
-
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void add_beneficiary_noAuthentication() throws Exception {
+    void testListOwn_Unauthorized() {
         SecurityContextHolder.clearContext();
 
-        String json = """
-                {
-                  "accountNumber": "999999",
-                  "customerId": "dummy",
-                  "beneficiaryAccount": "123456",
-                  "ifscCode": "SBIN0001",
-                  "beneficiaryName": "John"
-                }
-                """;
-
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                beneficiaryController.listOwn()
+        );
     }
 
     @Test
-    void add_beneficiary_notAuthenticated() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
+    void testUnauthorized_WhenNotAuthenticated() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(false);
 
-        auth.setAuthenticated(false);
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
 
-        String json = """
-                {
-                  "accountNumber": "999999",
-                  "customerId": "dummy",
-                  "beneficiaryAccount": "123456",
-                  "ifscCode": "SBIN0001",
-                  "beneficiaryName": "John"
-                }
-                """;
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                beneficiaryController.listOwn()
+        );
+    }
 
-        mockMvc.perform(post("/api/beneficiaries")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
+    @Test
+    void testUnauthorized_WhenPrincipalInvalid() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("SomeString");
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                beneficiaryController.listOwn()
+        );
     }
 
 }

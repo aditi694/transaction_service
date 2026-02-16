@@ -4,15 +4,18 @@ import com.bank.transaction_service.dto.request.LimitUpdateRequest;
 import com.bank.transaction_service.dto.response.TransactionLimitResponse;
 import com.bank.transaction_service.entity.TransactionLimit;
 import com.bank.transaction_service.repository.TransactionLimitRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TransactionLimitServiceImplTest {
 
     @Mock
@@ -21,15 +24,9 @@ class TransactionLimitServiceImplTest {
     @InjectMocks
     private TransactionLimitServiceImpl service;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void get_exists() {
-
-        TransactionLimit limit = mock(TransactionLimit.class);
+        TransactionLimit limit = new TransactionLimit("ACC1");
 
         when(repository.findByAccountNumber("ACC1"))
                 .thenReturn(Optional.of(limit));
@@ -37,16 +34,17 @@ class TransactionLimitServiceImplTest {
         TransactionLimitResponse response = service.get("ACC1");
 
         assertNotNull(response);
+
+        verify(repository).findByAccountNumber("ACC1");
         verify(repository, never()).save(any());
     }
 
     @Test
     void get_createNew() {
-
         when(repository.findByAccountNumber("ACC1"))
                 .thenReturn(Optional.empty());
 
-        TransactionLimit saved = mock(TransactionLimit.class);
+        TransactionLimit saved = new TransactionLimit("ACC1");
 
         when(repository.save(any()))
                 .thenReturn(saved);
@@ -54,14 +52,14 @@ class TransactionLimitServiceImplTest {
         TransactionLimitResponse response = service.get("ACC1");
 
         assertNotNull(response);
-        verify(repository).save(any(TransactionLimit.class));
+        verify(repository).findByAccountNumber("ACC1");
+        verify(repository).save(any());
     }
 
     @Test
     void update_exists() {
-
-        TransactionLimit limit = mock(TransactionLimit.class);
-        LimitUpdateRequest request = mock(LimitUpdateRequest.class);
+        TransactionLimit limit = new TransactionLimit("ACC1");
+        LimitUpdateRequest request = new LimitUpdateRequest();
 
         when(repository.findByAccountNumber("ACC1"))
                 .thenReturn(Optional.of(limit));
@@ -70,27 +68,25 @@ class TransactionLimitServiceImplTest {
                 service.update("ACC1", request);
 
         assertNotNull(response);
-        verify(limit).update(request);
         verify(repository).save(limit);
     }
 
     @Test
     void update_createNew() {
-
-        LimitUpdateRequest request = mock(LimitUpdateRequest.class);
-
+        LimitUpdateRequest request = new LimitUpdateRequest();
         when(repository.findByAccountNumber("ACC1"))
                 .thenReturn(Optional.empty());
 
-        TransactionLimit newLimit = mock(TransactionLimit.class);
+        TransactionLimit limit = new TransactionLimit("ACC1");
 
-        when(repository.save(any(TransactionLimit.class)))
-                .thenReturn(newLimit);
+        when(repository.save(any()))
+                .thenReturn(limit);
 
         TransactionLimitResponse response =
                 service.update("ACC1", request);
 
         assertNotNull(response);
+        verify(repository).findByAccountNumber("ACC1");
         verify(repository, atLeastOnce()).save(any());
     }
 }

@@ -5,15 +5,18 @@ import com.bank.transaction_service.entity.ScheduledTransaction;
 import com.bank.transaction_service.enums.ScheduledStatus;
 import com.bank.transaction_service.repository.ScheduledTransactionRepository;
 import com.bank.transaction_service.service.TransactionService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ScheduledTransactionServiceImplTest {
 
     @Mock
@@ -25,14 +28,8 @@ class ScheduledTransactionServiceImplTest {
     @InjectMocks
     private ScheduledTransactionServiceImpl service;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     void run_empty() {
-
         when(repository.findDueTransactions(any()))
                 .thenReturn(List.of());
 
@@ -44,7 +41,6 @@ class ScheduledTransactionServiceImplTest {
 
     @Test
     void run_success_noEndDate() {
-
         ScheduledTransaction st = mock(ScheduledTransaction.class);
         DebitTransactionRequest req = mock(DebitTransactionRequest.class);
 
@@ -64,7 +60,6 @@ class ScheduledTransactionServiceImplTest {
 
     @Test
     void run_complete_trueBranch() {
-
         ScheduledTransaction st = mock(ScheduledTransaction.class);
         DebitTransactionRequest req = mock(DebitTransactionRequest.class);
 
@@ -87,7 +82,6 @@ class ScheduledTransactionServiceImplTest {
 
     @Test
     void run_complete_falseBranch() {
-
         ScheduledTransaction st = mock(ScheduledTransaction.class);
         DebitTransactionRequest req = mock(DebitTransactionRequest.class);
 
@@ -110,7 +104,6 @@ class ScheduledTransactionServiceImplTest {
 
     @Test
     void run_failure() {
-
         ScheduledTransaction st = mock(ScheduledTransaction.class);
         DebitTransactionRequest req = mock(DebitTransactionRequest.class);
 

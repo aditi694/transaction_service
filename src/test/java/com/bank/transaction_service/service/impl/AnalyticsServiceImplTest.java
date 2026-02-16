@@ -5,10 +5,11 @@ import com.bank.transaction_service.entity.Transaction;
 import com.bank.transaction_service.enums.TransactionCategory;
 import com.bank.transaction_service.enums.TransactionType;
 import com.bank.transaction_service.repository.TransactionRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -17,18 +18,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class AnalyticsServiceImplTest {
 
     @Mock
     private TransactionRepository repository;
 
+    @InjectMocks
     private AnalyticsServiceImpl service;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        service = new AnalyticsServiceImpl(repository);
-    }
 
     @Test
     void getMonthlyAnalytics_CalculateCorrectly() {
@@ -49,8 +46,7 @@ class AnalyticsServiceImplTest {
                 .category(null)
                 .build();
 
-        when(repository.findByAccountNumberAndMonth("123",
-                1, 2026))
+        when(repository.findByAccountNumberAndMonth("123", 1, 2026))
                 .thenReturn(List.of(debit, credit, transfer));
 
         TransactionAnalyticsResponse response =
@@ -75,12 +71,14 @@ class AnalyticsServiceImplTest {
 
         assertEquals(2,
                 response.getCategoryBreakdown().size());
+
+        verify(repository)
+                .findByAccountNumberAndMonth("123", 1, 2026);
     }
 
     @Test
     void getMonthlyAnalytics_emptyTransactions() {
-        when(repository.findByAccountNumberAndMonth("123",
-                1, 2026))
+        when(repository.findByAccountNumberAndMonth("123", 1, 2026))
                 .thenReturn(List.of());
 
         TransactionAnalyticsResponse response =
@@ -100,6 +98,9 @@ class AnalyticsServiceImplTest {
                 response.getSummary().getTransactionCount());
 
         assertTrue(response.getCategoryBreakdown().isEmpty());
+
+        verify(repository)
+                .findByAccountNumberAndMonth("123", 1, 2026);
     }
 
     @Test
@@ -110,8 +111,7 @@ class AnalyticsServiceImplTest {
                 .category(null)
                 .build();
 
-        when(repository.findByAccountNumberAndMonth("123",
-                1, 2026))
+        when(repository.findByAccountNumberAndMonth("123", 1, 2026))
                 .thenReturn(List.of(tx));
 
         TransactionAnalyticsResponse response =
@@ -123,5 +123,8 @@ class AnalyticsServiceImplTest {
 
         assertEquals("OTHERS",
                 response.getCategoryBreakdown().get(0).getCategory());
+
+        verify(repository)
+                .findByAccountNumberAndMonth("123", 1, 2026);
     }
 }

@@ -1,80 +1,76 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.entity.Transaction;
 import com.bank.transaction_service.enums.TransactionType;
 import com.bank.transaction_service.repository.TransactionRepository;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TransactionInternalController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class TransactionInternalControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TransactionInternalControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private TransactionRepository repo;
 
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private JwtFilter jwtFilter;
+    @InjectMocks
+    private TransactionInternalController controller;
 
     @Test
-    void totalDebit_success() throws Exception {
+    public void testTotalDebit() {
         UUID customerId = UUID.randomUUID();
 
-        Transaction debit = Transaction.builder()
-                .transactionType(TransactionType.DEBIT)
-                .amount(BigDecimal.valueOf(1000))
-                .build();
+        Transaction t1 = new Transaction();
+        t1.setTransactionType(TransactionType.DEBIT);
+        t1.setAmount(BigDecimal.valueOf(100));
 
-        Transaction transfer = Transaction.builder()
-                .transactionType(TransactionType.TRANSFER)
-                .amount(BigDecimal.valueOf(500))
-                .build();
+        Transaction t2 = new Transaction();
+        t2.setTransactionType(TransactionType.TRANSFER);
+        t2.setAmount(BigDecimal.valueOf(200));
 
-        Transaction credit = Transaction.builder()
-                .transactionType(TransactionType.CREDIT)
-                .amount(BigDecimal.valueOf(2000))
-                .build();
+        Transaction t3 = new Transaction();
+        t3.setTransactionType(TransactionType.CREDIT);
+        t3.setAmount(BigDecimal.valueOf(500));
 
         when(repo.findByCustomerId(customerId))
-                .thenReturn(List.of(debit, transfer, credit));
+                .thenReturn(List.of(t1, t2, t3));
 
-        mockMvc.perform(get("/api/internal/transactions/total-debit")
-                        .param("customerId", customerId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value(1500.0))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Total debit calculated successfully"));
+        ResponseEntity<BaseResponse<Double>> response =
+                controller.totalDebit(customerId);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(300.0, response.getBody().getData());
+        Assertions.assertEquals(
+                "Total debit calculated successfully",
+                response.getBody().getResultInfo().getResultMsg()
+        );
     }
 
     @Test
-    void totalDebit_emptyList() throws Exception {
+    public void testTotalDebit_EmptyList() {
         UUID customerId = UUID.randomUUID();
+
         when(repo.findByCustomerId(customerId))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/internal/transactions/total-debit")
-                        .param("customerId", customerId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value(0.0));
+        ResponseEntity<BaseResponse<Double>> response =
+                controller.totalDebit(customerId);
+
+        Assertions.assertEquals(0.0, response.getBody().getData());
+        Assertions.assertEquals(
+                "Total debit calculated successfully",
+                response.getBody().getResultInfo().getResultMsg()
+        );
     }
 }

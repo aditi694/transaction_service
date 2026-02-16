@@ -3,11 +3,11 @@ package com.bank.transaction_service.exception;
 import com.bank.transaction_service.dto.response.BaseResponse;
 import feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -18,88 +18,37 @@ import java.time.format.DateTimeParseException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class GlobalExceptionHandlerTest {
+public class GlobalExceptionHandlerTest {
 
-    private GlobalExceptionHandler handler;
-    private HttpServletRequest request;
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-    @BeforeEach
-    void setUp() {
-        handler = new GlobalExceptionHandler();
-        request = mock(HttpServletRequest.class);
-        when(request.getRequestURI()).thenReturn("/test");
+    private HttpServletRequest request() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/test");
+        return request;
     }
 
     @Test
-    void handleTransactionException_shouldReturnCustomStatus() {
+    void testTransactionException() {
         TransactionException ex =
-                TransactionException.badRequest("Invalid transaction");
+                new TransactionException("Error", "ERR001", HttpStatus.BAD_REQUEST);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleTransactionException(ex, request);
+                handler.handleTransactionException(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid transaction",
-                response.getBody().getResultInfo().getResultMsg());
+        assertEquals("Error", response.getBody().getResultInfo().getResultMsg());
     }
-
     @Test
-    void handleTransactionException_shouldCover5xxBranch() {
-        TransactionException ex =
-                TransactionException.externalServiceError("External down");
+    void testMalformedJson_MessageNull() {
 
-        ResponseEntity<BaseResponse<Void>> response =
-                handler.handleTransactionException(ex, request);
-
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE,
-                response.getStatusCode());
-
-        assertEquals("External down",
-                response.getBody().getResultInfo().getResultMsg());
-    }
-
-    @Test
-    void handleMalformedJson_shouldReturnBadRequest() {
         HttpMessageNotReadableException ex =
-                new HttpMessageNotReadableException("Malformed JSON");
+                new HttpMessageNotReadableException(null);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleMalformedJson(ex, request);
+                handler.handleMalformedJson(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    }
-
-    @Test
-    void handleMalformedJson_whenBodyMissing_shouldReturnSpecificMessage() {
-        HttpMessageNotReadableException ex =
-                mock(HttpMessageNotReadableException.class);
-
-        when(ex.getMessage())
-                .thenReturn("Required request body is missing");
-
-        ResponseEntity<BaseResponse<Void>> response =
-                handler.handleMalformedJson(ex, request);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-
-        assertEquals(
-                "Request body is required but missing",
-                response.getBody().getResultInfo().getResultMsg()
-        );
-    }
-
-    @Test
-    void handleMalformedJson_whenMessageIsNull_shouldReturnDefaultMessage() {
-        HttpMessageNotReadableException ex =
-                mock(HttpMessageNotReadableException.class);
-
-        when(ex.getMessage()).thenReturn(null);
-
-        ResponseEntity<BaseResponse<Void>> response =
-                handler.handleMalformedJson(ex, request);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-
         assertEquals(
                 "Invalid request format. Please check your JSON payload",
                 response.getBody().getResultInfo().getResultMsg()
@@ -107,22 +56,45 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleMissingParams_shouldReturnBadRequest() {
-        MissingServletRequestParameterException ex =
-                new MissingServletRequestParameterException("account", "String");
+    void testMalformedJson_MissingBody() {
+        HttpMessageNotReadableException ex =
+                new HttpMessageNotReadableException("Required request body is missing");
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleMissingParams(ex, request);
+                handler.handleMalformedJson(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody()
-                .getResultInfo()
-                .getResultMsg()
-                .contains("account"));
+        assertEquals("Request body is required but missing",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleTypeMismatch_shouldReturnBadRequest() {
+    void testMalformedJson_InvalidFormat() {
+        HttpMessageNotReadableException ex =
+                new HttpMessageNotReadableException("Invalid JSON");
+
+        ResponseEntity<BaseResponse<Void>> response =
+                handler.handleMalformedJson(ex, request());
+
+        assertEquals("Invalid request format. Please check your JSON payload",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+
+    @Test
+    void testMissingParameter() {
+        MissingServletRequestParameterException ex =
+                new MissingServletRequestParameterException("accountNumber", "String");
+
+        ResponseEntity<BaseResponse<Void>> response =
+                handler.handleMissingParams(ex, request());
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(response.getBody().getResultInfo().getResultMsg()
+                .contains("accountNumber"));
+    }
+
+    @Test
+    void testTypeMismatch() {
         MethodArgumentTypeMismatchException ex =
                 mock(MethodArgumentTypeMismatchException.class);
 
@@ -130,107 +102,139 @@ class GlobalExceptionHandlerTest {
         doReturn(Integer.class).when(ex).getRequiredType();
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleTypeMismatch(ex, request);
+                handler.handleTypeMismatch(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody()
-                .getResultInfo()
-                .getResultMsg()
+        assertTrue(response.getBody().getResultInfo().getResultMsg()
                 .contains("limit"));
     }
-
     @Test
-    void handleTypeMismatch_whenRequiredTypeIsNull_shouldUseUnknown() {
+    void testTypeMismatch_WhenRequiredTypeNull() {
         MethodArgumentTypeMismatchException ex =
                 mock(MethodArgumentTypeMismatchException.class);
 
         when(ex.getName()).thenReturn("limit");
-        doReturn(null).when(ex).getRequiredType();
+        when(ex.getRequiredType()).thenReturn(null);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleTypeMismatch(ex, request);
+                handler.handleTypeMismatch(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody()
-                .getResultInfo()
-                .getResultMsg()
-                .contains("unknown"));
+        assertTrue(
+                response.getBody()
+                        .getResultInfo()
+                        .getResultMsg()
+                        .contains("unknown")
+        );
     }
 
     @Test
-    void handleDateTimeParseException_shouldReturnBadRequest() {
+    void testDateTimeParseException() {
         DateTimeParseException ex =
-                new DateTimeParseException("Invalid date", "2025", 0);
+                new DateTimeParseException("Invalid", "2026-99-99", 0);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleDateTimeParseException(ex, request);
+                handler.handleDateTimeParseException(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid date format. Please use format: yyyy-MM-dd or yyyy-MM",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleAuthenticationException_shouldReturnUnauthorized() {
+    void testAuthenticationException() {
         AuthenticationException ex =
                 mock(AuthenticationException.class);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleAuthenticationException(ex, request);
+                handler.handleAuthenticationException(ex, request());
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("Authentication failed. Please login again",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleAccessDenied_shouldReturnForbidden() {
+    void testAccessDenied() {
         AccessDeniedException ex =
                 new AccessDeniedException("Denied");
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleAccessDenied(ex, request);
+                handler.handleAccessDenied(ex, request());
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("You do not have permission to perform this action",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleFeignException_404_shouldReturnNotFound() {
+    void testFeignException_404() {
         FeignException ex = mock(FeignException.class);
         when(ex.status()).thenReturn(404);
+        when(ex.getMessage()).thenReturn("Not Found");
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleFeignException(ex, request);
+                handler.handleFeignException(ex, request());
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Requested resource not found in external service",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleFeignException_400_shouldReturnBadRequest() {
+    void testFeignException_400() {
         FeignException ex = mock(FeignException.class);
         when(ex.status()).thenReturn(400);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleFeignException(ex, request);
+                handler.handleFeignException(ex, request());
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid request to external service",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleFeignException_other_shouldReturnServiceUnavailable() {
+    void testFeignException_Default() {
         FeignException ex = mock(FeignException.class);
         when(ex.status()).thenReturn(500);
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleFeignException(ex, request);
+                handler.handleFeignException(ex, request());
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals("External service is temporarily unavailable. Please try again later",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void handleGenericException_shouldReturnInternalServerError() {
-        Exception ex = new Exception("Unexpected");
+    void testGenericException() {
+        Exception ex = new RuntimeException("Error");
 
         ResponseEntity<BaseResponse<Void>> response =
-                handler.handleGenericException(ex, request);
+                handler.handleGenericException(ex, request());
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("An unexpected error occurred. Please try again later",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+    @Test
+    void testTransactionException_5xx() {
+        TransactionException ex =
+                new TransactionException(
+                        "Server Error",
+                        "ERR500",
+                        HttpStatus.INTERNAL_SERVER_ERROR
+                );
+
+        ResponseEntity<BaseResponse<Void>> response =
+                handler.handleTransactionException(ex, request());
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR,
                 response.getStatusCode());
+
+        assertEquals("Server Error",
+                response.getBody().getResultInfo().getResultMsg());
     }
+
 }

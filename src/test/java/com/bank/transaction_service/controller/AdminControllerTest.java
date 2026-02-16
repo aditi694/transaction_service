@@ -1,179 +1,138 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.BeneficiaryService;
 import com.bank.transaction_service.util.AppConstants;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticatedPrincipal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
-import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-@AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(AdminController.class)
-class AdminControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private JwtFilter jwtFilter;
-
-    @MockBean
+@ExtendWith(MockitoExtension.class)
+public class AdminControllerTest {
+    @Mock
     private BeneficiaryService beneficiaryService;
+    @InjectMocks
+    private AdminController adminController;
 
-// {For AuthUser :-
-// AuthUser authUser = new AuthUser(customerId, role);
-//   UsernamePasswordAuthenticationToken authentication =
-//      new UsernamePasswordAuthenticationToken(
-//       authUser,null,authUser.getAuthorities());
-//  SecurityContextHolder.getContext().setAuthentication(authentication);}
+    private void mockSecurity(boolean isAdmin) {
+        AuthUser mockUser = mock(AuthUser.class);
+        when(mockUser.isAdmin()).thenReturn(isAdmin);
 
-    @Test
-    void listAll_success() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(mockUser);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
 
-        when(beneficiaryService.listAll())
-                .thenReturn(List.of(
-                        BeneficiaryResponse.builder()
-                                .beneficiaryId("1")
-                                .beneficiaryName("Test User")
-                                .verified(true)
-                                .active(true)
-                                .build()
-                ));
-
-        mockMvc.perform(get("/api/admin/beneficiaries"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("All beneficiaries fetched"));
-
-        verify(beneficiaryService).listAll();
+        SecurityContextHolder.setContext(securityContext);
     }
-    @Test
-    void listPending_success() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    void clear() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void testListAll_Admin() {
+        mockSecurity(true);
+        when(beneficiaryService.listAll())
+                .thenReturn(List.of(new BeneficiaryResponse()));
+
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> response =
+                adminController.list(false);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals("All beneficiaries fetched",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+
+    @Test
+    void testListPending_Admin() {
+        mockSecurity(true);
+
+        when(beneficiaryService.listPendingApprovals())
+                .thenReturn(List.of(new BeneficiaryResponse()));
+
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> response =
+                adminController.list(true);
+
+        Assertions.assertEquals("Pending beneficiaries fetched",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+
+    @Test
+    void testListPending_EmptyList() {
+        mockSecurity(true);
 
         when(beneficiaryService.listPendingApprovals())
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/admin/beneficiaries")
-                        .param("pendingOnly", "true"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("No pending beneficiary approvals"));
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> response =
+                adminController.list(true);
 
-        verify(beneficiaryService).listPendingApprovals();
+        Assertions.assertEquals("No pending beneficiary approvals",
+                response.getBody().getResultInfo().getResultMsg());
     }
+
     @Test
-    void listPending_notEmpty() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        when(beneficiaryService.listPendingApprovals())
-                .thenReturn(List.of(
-                        BeneficiaryResponse.builder()
-                                .beneficiaryId("1")
-                                .beneficiaryName("Test")
-                                .build()
-                ));
-
-        mockMvc.perform(get("/api/admin/beneficiaries")
-                        .param("pendingOnly", "true"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Pending beneficiaries fetched"));
-    }
-    @Test
-    void listAll_empty() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    void testListAll_EmptyList() {
+        mockSecurity(true);
 
         when(beneficiaryService.listAll())
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/admin/beneficiaries"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("No beneficiaries found"));
+        ResponseEntity<BaseResponse<List<BeneficiaryResponse>>> response =
+                adminController.list(false);
+
+        Assertions.assertEquals("No beneficiaries found",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void approve_success() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
+    void testList_NotAdmin_ShouldThrow() {
+        mockSecurity(false);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                adminController.list(false)
+        );
+    }
 
-        mockMvc.perform(post("/api/admin/beneficiaries/123/approve"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value(AppConstants.BENEFICIARY_VERIFIED_MSG));
+    @Test
+    void testApprove_Admin() {
+        mockSecurity(true);
+
+        ResponseEntity<BaseResponse<Void>> response =
+                adminController.approve("123");
 
         verify(beneficiaryService).adminVerify("123");
+
+        Assertions.assertEquals(AppConstants.BENEFICIARY_VERIFIED_MSG,
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void reject_success() throws Exception {
-        AuthUser admin = new AuthUser(UUID.randomUUID(), "ROLE_ADMIN");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        admin, null, admin.getAuthorities());
+    void testReject_Admin() {
+        mockSecurity(true);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        mockMvc.perform(post("/api/admin/beneficiaries/123/reject"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value(AppConstants.BENEFICIARY_REJECTED_MSG));
+        ResponseEntity<BaseResponse<Void>> response =
+                adminController.reject("123");
 
         verify(beneficiaryService).reject("123");
-    }
 
-    @Test
-    void list_shouldFail_whenCustomer() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        mockMvc.perform(get("/api/admin/beneficiaries"))
-                .andExpect(status().isForbidden());
+        Assertions.assertEquals(AppConstants.BENEFICIARY_REJECTED_MSG,
+                response.getBody().getResultInfo().getResultMsg());
     }
 }

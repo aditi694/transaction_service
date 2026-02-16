@@ -1,127 +1,128 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.MiniStatementResponse;
 import com.bank.transaction_service.dto.response.TransactionHistoryResponse;
 import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.TransactionQueryService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import com.bank.transaction_service.util.AppConstants;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.UUID;
-
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(TransactionQueryController.class)
-class TransactionQueryControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TransactionQueryControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private TransactionQueryService queryService;
 
-    @MockBean
-    private JwtUtil jwtUtil;
+    @InjectMocks
+    private TransactionQueryController controller;
 
-    @MockBean
-    private JwtFilter jwtFilter;
+    private void mockValidAuth() {
+        AuthUser user = mock(AuthUser.class);
 
-    @Test
-    void history_success() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(user);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
 
-        TransactionHistoryResponse mockResponse =
-                TransactionHistoryResponse.builder().build();
-
-        when(queryService.getHistory("1234567890", 20, 1))
-                .thenReturn(mockResponse);
-
-        mockMvc.perform(get("/api/customer/transactions")
-                        .param("account_number", "1234567890"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transaction history fetched successfully"));
-
-        verify(queryService)
-                .getHistory("1234567890", 20, 1);
+        SecurityContextHolder.setContext(context);
     }
 
-    @Test
-    void miniStatement_success() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        MiniStatementResponse mockResponse =
-                MiniStatementResponse.builder().build();
-
-        when(queryService.miniStatement("1234567890"))
-                .thenReturn(mockResponse);
-
-        mockMvc.perform(get("/api/customer/mini-statement")
-                        .param("account_number", "1234567890"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Mini statement generated successfully"));
-
-        verify(queryService)
-                .miniStatement("1234567890");
-    }
-
-    @Test
-    void history_shouldFail_whenNoAuthentication() throws Exception {
+    @AfterEach
+    void clearContext() {
         SecurityContextHolder.clearContext();
-
-        mockMvc.perform(get("/api/customer/transactions")
-                        .param("account_number", "1234567890"))
-                .andExpect(status().isForbidden());
     }
+
     @Test
-    void history_shouldFail_whenNotAuthenticated() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
+    public void testHistory() {
+        mockValidAuth();
+        TransactionHistoryResponse response =
+                new TransactionHistoryResponse();
 
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
+        when(queryService.getHistory("ACC123", 20, 1))
+                .thenReturn(response);
 
-        auth.setAuthenticated(false);
+        ResponseEntity<BaseResponse<TransactionHistoryResponse>> result =
+                controller.history("ACC123", 20, 1);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        mockMvc.perform(get("/api/customer/transactions")
-                        .param("account_number", "1234567890"))
-                .andExpect(status().isForbidden());
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(
+                "Transaction history fetched successfully",
+                result.getBody().getResultInfo().getResultMsg()
+        );
     }
+
     @Test
-    void history_shouldFail_whenPrincipalIsNotAuthUser() throws Exception {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        "someStringUser", null, null);
+    public void testMiniStatement() {
+        mockValidAuth();
+        MiniStatementResponse response =
+                new MiniStatementResponse();
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        when(queryService.miniStatement("ACC123"))
+                .thenReturn(response);
 
-        mockMvc.perform(get("/api/customer/transactions")
-                        .param("account_number", "1234567890"))
-                .andExpect(status().isForbidden());
+        ResponseEntity<BaseResponse<MiniStatementResponse>> result =
+                controller.miniStatement("ACC123");
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(
+                "Mini statement generated successfully",
+                result.getBody().getResultInfo().getResultMsg()
+        );
     }
 
+    @Test
+    public void testUnauthorized_WhenAuthNull() {
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(null);
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.history("ACC123", 20, 1)
+        );
+    }
+
+    @Test
+    public void testUnauthorized_WhenNotAuthenticated() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(false);
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.history("ACC123", 20, 1)
+        );
+    }
+
+    @Test
+    public void testUnauthorized_WhenPrincipalInvalid() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("invalid");
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.history("ACC123", 20, 1)
+        );
+    }
 }

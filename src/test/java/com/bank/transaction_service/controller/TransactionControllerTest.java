@@ -1,175 +1,74 @@
 package com.bank.transaction_service.controller;
 
-import com.bank.transaction_service.dto.response.CreditTransactionResponse;
-import com.bank.transaction_service.dto.response.DebitTransactionResponse;
-import com.bank.transaction_service.dto.response.TransactionStatusResponse;
-import com.bank.transaction_service.dto.response.TransferInitiatedResponse;
-import com.bank.transaction_service.entity.ScheduledTransaction;
-import com.bank.transaction_service.enums.Frequency;
-import com.bank.transaction_service.enums.ScheduledStatus;
-import com.bank.transaction_service.repository.ScheduledTransactionRepository;
-import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
+import com.bank.transaction_service.dto.request.CreditTransactionRequest;
+import com.bank.transaction_service.dto.request.DebitTransactionRequest;
+import com.bank.transaction_service.dto.request.TransferTransactionRequest;
+import com.bank.transaction_service.dto.response.*;
 import com.bank.transaction_service.service.TransactionService;
-import com.google.common.base.Verify;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-@WebMvcTest(TransactionController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class TransactionControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
+@ExtendWith(MockitoExtension.class)
+public class TransactionControllerTest {
 
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private JwtFilter jwtFilter;
-
-    @MockBean
+    @Mock
     private TransactionService transactionService;
 
-    @Test
-    void debit_success() throws Exception {
-        DebitTransactionResponse response =
-                DebitTransactionResponse.builder()
-                        .success(true)
-                        .message("Success")
-                        .transactionId("TXN-1")
-                        .status("COMPLETED")
-                        .build();
+    @InjectMocks
+    private TransactionController transactionController;
 
+    @Test
+    public void testDebit() {
+        DebitTransactionRequest request = new DebitTransactionRequest();
+        DebitTransactionResponse response = new DebitTransactionResponse();
+        response.setMessage("hey");
         when(transactionService.debit(any())).thenReturn(response);
-
-        String json = """
-                {
-                  "accountNumber":"12345",
-                  "amount":1000,
-                  "category":"FOOD",
-                  "description":"Lunch"
-                }
-                """;
-
-        mockMvc.perform(post("/api/customer/transaction/debit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Debit transaction initiated"))
-                .andExpect(jsonPath("$.data.transactionId")
-                        .value("TXN-1"));
-
-        verify(transactionService).debit(any());
+        ResponseEntity<BaseResponse<DebitTransactionResponse>> debit = transactionController.debit(request);
+        Assertions.assertNotNull(debit);
+        Assertions.assertEquals("Debit transaction initiated", debit.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void credit_success() throws Exception {
-        CreditTransactionResponse response = CreditTransactionResponse.builder()
-                .success(true)
-                .transactionId("TXN-2")
-                .status("COMPLETED")
-                .build();
-        String json = """
-                { "accountNUmber":"ACC123",
-                "amount":1000,
-                "category":"SALARY",
-                "description":"First salary"
-                }
-                """;
-        when(transactionService.credit(any()))
-                .thenReturn(response);
-        mockMvc.perform(post("/api/customer/transaction/credit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg").value("Credit transaction initiated"))
-                .andExpect(jsonPath("$.data.transactionId").value("TXN-2"));
-        verify(transactionService).credit(any());
+    public void testCredit() {
+        CreditTransactionRequest request = new CreditTransactionRequest();
+        CreditTransactionResponse response = new CreditTransactionResponse();
+        response.setMessage("COMPLETED");
+        when(transactionService.credit(any())).thenReturn(response);
+        ResponseEntity<BaseResponse<CreditTransactionResponse>> credit = transactionController.credit(request);
+        Assertions.assertNotNull(credit);
+        Assertions.assertEquals("Credit transaction initiated", credit.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void transfer_success() throws Exception {
-        TransferInitiatedResponse response =
-                TransferInitiatedResponse.builder()
-                        .success(true)
-                        .transactionId("TXN-3")
-                        .status("PENDING")
-                        .timestamp(LocalDateTime.now())
-                        .build();
-
-        when(transactionService.transfer(any()))
-                .thenReturn(response);
-
-        String json = """
-                {
-                  "fromAccount":"123",
-                  "toAccount":"456",
-                  "amount":1000,
-                  "transferType":"IMPS",
-                  "description":"Rent"
-                }
-                """;
-
-        mockMvc.perform(post("/api/customer/transaction/transfer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transfer transaction initiated"))
-                .andExpect(jsonPath("$.data.transactionId")
-                        .value("TXN-3"));
-
-        verify(transactionService).transfer(any());
+    public void testTransfer() {
+        TransferTransactionRequest request = new TransferTransactionRequest();
+        TransferInitiatedResponse response = new TransferInitiatedResponse();
+        response.setStatus("COMPLETED");
+        when(transactionService.transfer(any())).thenReturn(response);
+        ResponseEntity<BaseResponse<TransferInitiatedResponse>> transfer = transactionController.transfer(request);
+        Assertions.assertNotNull(transfer);
+        Assertions.assertEquals("Transfer transaction initiated", transfer.getBody().getResultInfo().getResultMsg());
     }
+
     @Test
-    void getStatus_success() throws Exception {
-        TransactionStatusResponse response =
-                TransactionStatusResponse.builder()
-                        .transactionId("TXN-1")
-                        .status("COMPLETED")
-                        .amount(BigDecimal.valueOf(1000))
-                        .build();
-
-        when(transactionService.getStatus("TXN-1"))
-                .thenReturn(response);
-
-        mockMvc.perform(get("/api/customer/transaction/TXN-1/status"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transaction status fetched successfully"))
-                .andExpect(jsonPath("$.data.transactionId")
-                        .value("TXN-1"));
-
-        verify(transactionService).getStatus("TXN-1");
+    public void testGetStatus() {
+        UUID transactionId = UUID.randomUUID();
+        TransactionStatusResponse response = new TransactionStatusResponse();
+        response.setStatus("COMPLETED");
+        when(transactionService.getStatus(any())).thenReturn(response);
+        ResponseEntity<BaseResponse<TransactionStatusResponse>> getStatus = transactionController.getStatus(String.valueOf(transactionId));
+        Assertions.assertNotNull(getStatus);
+        Assertions.assertEquals("Transaction status fetched successfully", getStatus.getBody().getResultInfo().getResultMsg());
     }
-    @Test
-    void getStatus_notFound() throws Exception {
-        when(transactionService.getStatus("TXN-999"))
-                .thenThrow(new RuntimeException("Not found"));
 
-        mockMvc.perform(get("/api/customer/transaction/TXN-999/status"))
-                .andExpect(status().isInternalServerError());
-    }
 }

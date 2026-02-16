@@ -1,10 +1,15 @@
 package com.bank.transaction_service.dto.request;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class LimitUpdateRequest {
 
     @NotNull(message = "Daily limit is required")

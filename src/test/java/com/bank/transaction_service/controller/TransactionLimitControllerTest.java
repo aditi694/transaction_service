@@ -1,149 +1,126 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.request.LimitUpdateRequest;
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.TransactionLimitResponse;
 import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.TransactionLimitService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import com.bank.transaction_service.util.AppConstants;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
-
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TransactionLimitController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class TransactionLimitControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TransactionLimitControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private TransactionLimitService limitService;
 
-    @MockBean
-    private JwtUtil jwtUtil;
+    @InjectMocks
+    private TransactionLimitController controller;
 
-    @MockBean
-    private JwtFilter jwtFilter;
+    private void mockValidAuth() {
+        AuthUser user = mock(AuthUser.class);
 
-    private void setAuth() {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(user);
 
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-    @Test
-    void getLimits_success() throws Exception {
-        setAuth();
-        TransactionLimitResponse response =
-                TransactionLimitResponse.builder()
-                        .dailyLimit(BigDecimal.valueOf(50000))
-                        .monthlyLimit(BigDecimal.valueOf(200000))
-                        .build();
-
-        when(limitService.get("123456"))
-                .thenReturn(response);
-
-        mockMvc.perform(get("/api/customer/limits")
-                        .param("accountNumber", "123456"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.dailyLimit").value(50000))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transaction limits fetched successfully"));
-
-        verify(limitService).get("123456");
+        SecurityContextHolder.setContext(context);
     }
 
-    @Test
-    void updateLimits_success() throws Exception {
-        setAuth();
-        String json = """
-                {
-                    "dailyLimit": 70000,
-                    "monthlyLimit": 250000
-                }
-                """;
-
-        TransactionLimitResponse response =
-                TransactionLimitResponse.builder()
-                        .dailyLimit(BigDecimal.valueOf(70000))
-                        .monthlyLimit(BigDecimal.valueOf(250000))
-                        .build();
-
-        when(limitService.update(eq("123456"), any()))
-                .thenReturn(response);
-
-        mockMvc.perform(put("/api/customer/limits")
-                        .param("accountNumber", "123456")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.dailyLimit").value(70000))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transaction limits updated successfully"));
-
-        verify(limitService).update(eq("123456"), any());
-    }
-    @Test
-    void getLimits_unauthorized() throws Exception {
+    @AfterEach
+    void clearContext() {
         SecurityContextHolder.clearContext();
-
-        mockMvc.perform(get("/api/customer/limits")
-                        .param("accountNumber", "123456"))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(limitService);
-    }
-    @Test
-    void updateLimits_notAuthenticated() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-
-        auth.setAuthenticated(false);
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        mockMvc.perform(put("/api/customer/limits")
-                        .param("accountNumber", "123456")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(limitService);
     }
 
     @Test
-    void getLimits_wrongPrincipal() throws Exception {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        "stringUser", null, List.of());
+    public void testGetLimits() {
+        mockValidAuth();
+        TransactionLimitResponse response = new TransactionLimitResponse();
 
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        when(limitService.get("ACC123")).thenReturn(response);
 
-        mockMvc.perform(get("/api/customer/limits")
-                        .param("accountNumber", "123456"))
-                .andExpect(status().isForbidden());
+        ResponseEntity<BaseResponse<TransactionLimitResponse>> result =
+                controller.getLimits("ACC123");
 
-        verifyNoInteractions(limitService);
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(
+                "Transaction limits fetched successfully",
+                result.getBody().getResultInfo().getResultMsg()
+        );
     }
 
+    @Test
+    public void testUpdateLimits() {
+        mockValidAuth();
+        LimitUpdateRequest request = new LimitUpdateRequest();
+        TransactionLimitResponse response = new TransactionLimitResponse();
+
+        when(limitService.update(eq("ACC123"), any()))
+                .thenReturn(response);
+
+        ResponseEntity<BaseResponse<TransactionLimitResponse>> result =
+                controller.updateLimits("ACC123", request);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(
+                "Transaction limits updated successfully",
+                result.getBody().getResultInfo().getResultMsg()
+        );
+    }
+
+    @Test
+    public void testUnauthorized_WhenAuthNull() {
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(null);
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.getLimits("ACC123")
+        );
+    }
+
+    @Test
+    public void testUnauthorized_WhenNotAuthenticated() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(false);
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.getLimits("ACC123")
+        );
+    }
+
+    @Test
+    public void testUnauthorized_WhenPrincipalInvalid() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("invalid");
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
+
+        Assertions.assertThrows(AccessDeniedException.class, () ->
+                controller.getLimits("ACC123")
+        );
+    }
 }

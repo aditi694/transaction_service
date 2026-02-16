@@ -38,7 +38,6 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void history_empty() {
-
         Page<Transaction> page =
                 new PageImpl<>(List.of(), PageRequest.of(0, 5), 0);
 
@@ -55,9 +54,7 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void history_withData() {
-
         Transaction tx = buildTxn(TransactionType.DEBIT, TransactionStatus.SUCCESS);
-
         Page<Transaction> page =
                 new PageImpl<>(List.of(tx), PageRequest.of(0, 5), 1);
 
@@ -79,7 +76,6 @@ class TransactionQueryServiceImplTest {
             "FAILED,Transaction failed. Amount will be refunded if debited"
     })
     void history_statusMessages_exact(TransactionStatus status, String expectedMessage) {
-
         Transaction tx = Transaction.builder()
                 .transactionId("TXN1")
                 .transactionType(TransactionType.CREDIT)
@@ -107,7 +103,6 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void mini_empty() {
-
         when(repository.findTop5ByAccountNumberOrderByCreatedAtDesc("ACC1"))
                 .thenReturn(List.of());
 
@@ -123,7 +118,6 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void mini_withData() {
-
         Transaction debit = buildTxn(TransactionType.DEBIT, TransactionStatus.SUCCESS);
         Transaction credit = buildTxn(TransactionType.CREDIT, TransactionStatus.SUCCESS);
 
@@ -143,7 +137,6 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void mini_maskShortAccount() {
-
         when(repository.findTop5ByAccountNumberOrderByCreatedAtDesc("12"))
                 .thenReturn(List.of());
 
@@ -158,7 +151,6 @@ class TransactionQueryServiceImplTest {
 
     @Test
     void mini_maskNullAccount() {
-
         when(repository.findTop5ByAccountNumberOrderByCreatedAtDesc(null))
                 .thenReturn(List.of());
 
@@ -172,7 +164,6 @@ class TransactionQueryServiceImplTest {
     }
 
     private Transaction buildTxn(TransactionType type, TransactionStatus status) {
-
         return Transaction.builder()
                 .transactionId("TXN1")
                 .transactionType(type)

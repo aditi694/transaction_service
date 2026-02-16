@@ -37,24 +37,24 @@ public class GlobalExceptionHandler {
                 .status(ex.getHttpStatus())
                 .body(BaseResponse.error(ex.getMessage(), ex.getErrorCode()));
     }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<BaseResponse<Void>> handleValidationErrors(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request
-    ) {
-        String errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
-
-        log.warn("Validation failed at {}: {}", request.getRequestURI(), errors);
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(BaseResponse.error(errors, "INVALID_INPUT"));
-    }
+//
+//    @ExceptionHandler(MethodArgumentNotValidException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleValidationErrors(
+//            MethodArgumentNotValidException ex,
+//            HttpServletRequest request
+//    ) {
+//        String errors = ex.getBindingResult()
+//                .getFieldErrors()
+//                .stream()
+//                .map(FieldError::getDefaultMessage)
+//                .collect(Collectors.joining(", "));
+//
+//        log.warn("Validation failed at {}: {}", request.getRequestURI(), errors);
+//
+//        return ResponseEntity
+//                .status(HttpStatus.BAD_REQUEST)
+//                .body(BaseResponse.error(errors, "INVALID_INPUT"));
+//    }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<BaseResponse<Void>> handleMalformedJson(
@@ -120,17 +120,17 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<BaseResponse<Void>> handleIllegalArgument(
-            IllegalArgumentException ex,
-            HttpServletRequest request
-    ) {
-        log.warn("Illegal argument at {}: {}", request.getRequestURI(), ex.getMessage());
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(BaseResponse.error(ex.getMessage(), "INVALID_INPUT"));
-    }
+//    @ExceptionHandler(IllegalArgumentException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleIllegalArgument(
+//            IllegalArgumentException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.warn("Illegal argument at {}: {}", request.getRequestURI(), ex.getMessage());
+//
+//        return ResponseEntity
+//                .status(HttpStatus.BAD_REQUEST)
+//                .body(BaseResponse.error(ex.getMessage(), "INVALID_INPUT"));
+//    }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<BaseResponse<Void>> handleAuthenticationException(
@@ -161,54 +161,54 @@ public class GlobalExceptionHandler {
                         "FORBIDDEN"
                 ));
     }
-
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<BaseResponse<Void>> handleNoHandlerFound(
-            NoHandlerFoundException ex,
-            HttpServletRequest request
-    ) {
-        log.warn("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(BaseResponse.error(
-                        "The requested endpoint does not exist: " + ex.getRequestURL(),
-                        "NOT_FOUND"
-                ));
-    }
-
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<BaseResponse<Void>> handleNoResourceFound(
-            NoResourceFoundException ex,
-            HttpServletRequest request
-    ) {
-        log.warn("No resource found at {}", request.getRequestURI());
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(BaseResponse.error(
-                        "The requested resource does not exist",
-                        "NOT_FOUND"
-                ));
-    }
-
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<BaseResponse<Void>> handleMethodNotSupported(
-            HttpRequestMethodNotSupportedException ex,
-            HttpServletRequest request
-    ) {
-        log.warn("Method not supported at {}: {} not allowed", request.getRequestURI(), ex.getMethod());
-
-        String message = String.format(
-                "HTTP method %s is not supported for this endpoint. Supported methods: %s",
-                ex.getMethod(),
-                ex.getSupportedHttpMethods()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(BaseResponse.error(message, "METHOD_NOT_ALLOWED"));
-    }
+//
+//    @ExceptionHandler(NoHandlerFoundException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleNoHandlerFound(
+//            NoHandlerFoundException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.warn("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
+//
+//        return ResponseEntity
+//                .status(HttpStatus.NOT_FOUND)
+//                .body(BaseResponse.error(
+//                        "The requested endpoint does not exist: " + ex.getRequestURL(),
+//                        "NOT_FOUND"
+//                ));
+//    }
+//
+//    @ExceptionHandler(NoResourceFoundException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleNoResourceFound(
+//            NoResourceFoundException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.warn("No resource found at {}", request.getRequestURI());
+//
+//        return ResponseEntity
+//                .status(HttpStatus.NOT_FOUND)
+//                .body(BaseResponse.error(
+//                        "The requested resource does not exist",
+//                        "NOT_FOUND"
+//                ));
+//    }
+//
+//    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleMethodNotSupported(
+//            HttpRequestMethodNotSupportedException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.warn("Method not supported at {}: {} not allowed", request.getRequestURI(), ex.getMethod());
+//
+//        String message = String.format(
+//                "HTTP method %s is not supported for this endpoint. Supported methods: %s",
+//                ex.getMethod(),
+//                ex.getSupportedHttpMethods()
+//        );
+//
+//        return ResponseEntity
+//                .status(HttpStatus.METHOD_NOT_ALLOWED)
+//                .body(BaseResponse.error(message, "METHOD_NOT_ALLOWED"));
+//    }
 
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<BaseResponse<Void>> handleFeignException(
@@ -238,35 +238,35 @@ public class GlobalExceptionHandler {
                 .body(BaseResponse.error(message, errorCode));
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<BaseResponse<Void>> handleIllegalState(
-            IllegalStateException ex,
-            HttpServletRequest request
-    ) {
-        log.error("Illegal state at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
-
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(BaseResponse.error(
-                        "An unexpected error occurred. Please contact support",
-                        "INTERNAL_SERVER_ERROR"
-                ));
-    }
-
-    @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<BaseResponse<Void>> handleNullPointer(
-            NullPointerException ex,
-            HttpServletRequest request
-    ) {
-        log.error("NullPointerException at {}", request.getRequestURI(), ex);
-
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(BaseResponse.error(
-                        "An internal error occurred. Please try again or contact support",
-                        "INTERNAL_SERVER_ERROR"
-                ));
-    }
+//    @ExceptionHandler(IllegalStateException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleIllegalState(
+//            IllegalStateException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.error("Illegal state at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+//
+//        return ResponseEntity
+//                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(BaseResponse.error(
+//                        "An unexpected error occurred. Please contact support",
+//                        "INTERNAL_SERVER_ERROR"
+//                ));
+//    }
+//
+//    @ExceptionHandler(NullPointerException.class)
+//    public ResponseEntity<BaseResponse<Void>> handleNullPointer(
+//            NullPointerException ex,
+//            HttpServletRequest request
+//    ) {
+//        log.error("NullPointerException at {}", request.getRequestURI(), ex);
+//
+//        return ResponseEntity
+//                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(BaseResponse.error(
+//                        "An internal error occurred. Please try again or contact support",
+//                        "INTERNAL_SERVER_ERROR"
+//                ));
+//    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleGenericException(

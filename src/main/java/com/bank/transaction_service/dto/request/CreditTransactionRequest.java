@@ -3,12 +3,17 @@ package com.bank.transaction_service.dto.request;
 import com.bank.transaction_service.enums.TransactionCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class CreditTransactionRequest {
 
     @NotBlank(message = "Account number is required")

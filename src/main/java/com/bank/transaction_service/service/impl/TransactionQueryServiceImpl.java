@@ -63,11 +63,8 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
                 .build();
     }
 
-    // ================= MINI STATEMENT =================
-
     @Override
     public MiniStatementResponse miniStatement(String accountNumber) {
-
         List<Transaction> last5 =
                 transactionRepo.findTop5ByAccountNumberOrderByCreatedAtDesc(accountNumber);
 
@@ -111,10 +108,7 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
                 .build();
     }
 
-    // ================= MAPPER =================
-
     private TransactionResponse mapTransaction(Transaction tx) {
-
         String amountDisplay =
                 tx.getTransactionType() == TransactionType.DEBIT
                         ? "- ₹" + tx.getTotalAmount()

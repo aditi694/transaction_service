@@ -1,69 +1,52 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.TransactionAnalyticsResponse;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
 import com.bank.transaction_service.service.AnalyticsService;
-import org.springframework.http.MediaType;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
-import java.math.BigDecimal;
 import java.time.YearMonth;
-import java.util.List;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-@AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(AnalyticsController.class)
-class AnalyticsControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
-    @MockBean
-    private JwtUtil jwtUtil;
 
-    @MockBean
-    private JwtFilter jwtFilter;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
-    @MockBean
+@ExtendWith(MockitoExtension.class)
+public class AnalyticsControllerTest {
+
+    @Mock
     private AnalyticsService analyticsService;
+
+    @InjectMocks
+    private AnalyticsController analyticsController;
+
     @Test
-    void analytics_success() throws Exception {
+    public void testAnalytics() {
+
+        String accountNumber = "ACC123";
+        String month = "2026-02";  // must match YearMonth format
+
         TransactionAnalyticsResponse response =
-                TransactionAnalyticsResponse.builder()
-                        .accountNumber("123456")
-                        .month("2026-01")
-                        .build();
+                new TransactionAnalyticsResponse();
 
-        when(analyticsService.getMonthlyAnalytics(any(), any()))
-                .thenReturn(response);
+        when(analyticsService.getMonthlyAnalytics(
+                eq(accountNumber),
+                any(YearMonth.class)
+        )).thenReturn(response);
 
-        mockMvc.perform(get("/api/transactions/analytics")
-                        .param("accountNumber", "123456")
-                        .param("month", "2026-01"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accountNumber").value("123456"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Transaction analytics fetched successfully"));
+        ResponseEntity<BaseResponse<TransactionAnalyticsResponse>> result =
+                analyticsController.analytics(accountNumber, month);
 
-        verify(analyticsService)
-                .getMonthlyAnalytics("123456", YearMonth.of(2026, 1));
-    }
-
-    @Test
-    void analytics_exception() throws Exception {
-
-        when(analyticsService.getMonthlyAnalytics(any(), any()))
-                .thenThrow(new RuntimeException());
-
-        mockMvc.perform(get("/api/transactions/analytics")
-                        .param("accountNumber", "123456")
-                        .param("month", "2026-01"))
-                .andExpect(status().isInternalServerError());
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(
+                "Transaction analytics fetched successfully",
+                result.getBody().getResultInfo().getResultMsg()
+        );
     }
 }

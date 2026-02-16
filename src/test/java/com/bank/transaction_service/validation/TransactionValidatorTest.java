@@ -6,41 +6,53 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TransactionValidatorTest {
+public class TransactionValidatorTest {
 
     @Test
-    void validateBeneficiary_validRequest_shouldPass() {
-        BeneficiaryRequest req = new BeneficiaryRequest();
-        req.setBeneficiaryAccount("1234567890");
-        req.setBeneficiaryName("Test User");
+    void testValidateBeneficiary_Valid() {
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        request.setBeneficiaryAccount("1234567890");
+        request.setBeneficiaryName("John Doe");
 
         assertDoesNotThrow(() ->
-                TransactionValidator.validateBeneficiary(req));
+                TransactionValidator.validateBeneficiary(request)
+        );
     }
 
     @Test
-    void validateBeneficiary_nullRequest_shouldThrowException() {
-        assertThrows(TransactionException.class,
-                () -> TransactionValidator.validateBeneficiary(null));
+    void testValidateBeneficiary_NullRequest() {
+        TransactionException ex = assertThrows(
+                TransactionException.class,
+                () -> TransactionValidator.validateBeneficiary(null)
+        );
+
+        assertEquals("Invalid beneficiary details", ex.getMessage());
+        assertEquals("BAD_REQUEST", ex.getErrorCode());
     }
 
     @Test
-    void validateBeneficiary_nullAccount_shouldThrowException() {
-        BeneficiaryRequest req = new BeneficiaryRequest();
-        req.setBeneficiaryAccount(null);
-        req.setBeneficiaryName("Test User");
+    void testValidateBeneficiary_NullAccount() {
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        request.setBeneficiaryName("John Doe");
 
-        assertThrows(TransactionException.class,
-                () -> TransactionValidator.validateBeneficiary(req));
+        TransactionException ex = assertThrows(
+                TransactionException.class,
+                () -> TransactionValidator.validateBeneficiary(request)
+        );
+
+        assertEquals("Invalid beneficiary details", ex.getMessage());
     }
 
     @Test
-    void validateBeneficiary_nullName_shouldThrowException() {
-        BeneficiaryRequest req = new BeneficiaryRequest();
-        req.setBeneficiaryAccount("1234567890");
-        req.setBeneficiaryName(null);
+    void testValidateBeneficiary_NullName() {
+        BeneficiaryRequest request = new BeneficiaryRequest();
+        request.setBeneficiaryAccount("1234567890");
 
-        assertThrows(TransactionException.class,
-                () -> TransactionValidator.validateBeneficiary(req));
+        TransactionException ex = assertThrows(
+                TransactionException.class,
+                () -> TransactionValidator.validateBeneficiary(request)
+        );
+
+        assertEquals("Invalid beneficiary details", ex.getMessage());
     }
 }

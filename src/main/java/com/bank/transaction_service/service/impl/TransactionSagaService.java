@@ -26,8 +26,6 @@ public class TransactionSagaService {
     private final TransactionStatusProducer statusProducer;
 
     public TransactionSaga start(Transaction tx) {
-
-        // ✅ DEFENSIVE, DB-SAFE AMOUNT
         BigDecimal sagaAmount =
                 tx.getTotalAmount() != null
                         ? tx.getTotalAmount()
@@ -45,7 +43,7 @@ public class TransactionSagaService {
                         .transactionId(tx.getTransactionId())
                         .fromAccount(tx.getAccountNumber())
                         .toAccount(tx.getToAccount())
-                        .amount(sagaAmount)                 // ✅ NEVER NULL
+                        .amount(sagaAmount)
                         .status(SagaStatus.IN_PROGRESS)
                         .currentStep(SagaStep.INITIATED)
                         .createdAt(LocalDateTime.now())

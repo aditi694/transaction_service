@@ -35,7 +35,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionLimitRepository limitRepo;
     private final AccountClient accountClient;
     private final TransactionSagaService sagaService;
-    private final TransactionStatusProducer statusProducer; // ✅ ONLY kafka
+    private final TransactionStatusProducer statusProducer;
 
     @Override
     public CreditTransactionResponse credit(CreditTransactionRequest req) {
@@ -71,10 +71,10 @@ public class TransactionServiceImpl implements TransactionService {
                 BigDecimal.ZERO
         );
 
-        tx.setCategory(req.getCategory());              // ✅ FIX
+        tx.setCategory(req.getCategory());
         tx.setDescription(req.getDescription());
         tx.setPreviousBalance(previousBalance);
-        tx.setIdempotencyKey(idempotencyKey);            // ✅ FIX
+        tx.setIdempotencyKey(idempotencyKey);
 
         transactionRepo.save(tx);
 
@@ -126,10 +126,10 @@ public class TransactionServiceImpl implements TransactionService {
                 BigDecimal.ZERO
         );
 
-        tx.setCategory(req.getCategory());               // ✅ FIX
+        tx.setCategory(req.getCategory());
         tx.setDescription(req.getDescription());
         tx.setPreviousBalance(previousBalance);
-        tx.setIdempotencyKey(idempotencyKey);            // ✅ FIX
+        tx.setIdempotencyKey(idempotencyKey);
 
         transactionRepo.save(tx);
 
@@ -150,12 +150,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getFromAccount());
-
+        //new line
+//        validateCategory(TransactionType.TRANSFER, TransactionCategory.TRANSFER);
         String idempotencyKey = generateIdempotencyKey(
                 req.getFromAccount(),
                 req.getAmount(),
                 TransactionType.TRANSFER,
-                TransactionCategory.TRANSFER,   // ✅ forced
+                TransactionCategory.TRANSFER,
                 req.getDescription()
         );
 
@@ -183,14 +184,14 @@ public class TransactionServiceImpl implements TransactionService {
                 .toAccount(req.getToAccount())
                 .customerId(user.getCustomerId())
                 .transactionType(TransactionType.TRANSFER)
-                .category(TransactionCategory.TRANSFER)   // ✅ FIX
+                .category(TransactionCategory.TRANSFER)
                 .amount(req.getAmount())
                 .charges(charges)
                 .totalAmount(totalDebit)
                 .status(TransactionStatus.IN_PROGRESS)
                 .createdAt(LocalDateTime.now())
                 .previousBalance(previousBalance)
-                .idempotencyKey(idempotencyKey)            // ✅ FIX
+                .idempotencyKey(idempotencyKey)
                 .description(req.getDescription())
                 .build();
 
@@ -228,8 +229,6 @@ public class TransactionServiceImpl implements TransactionService {
                         : "Transaction failed")
                 .build();
     }
-
-    // ---------------- HELPERS ----------------
 
     private Transaction createTxn(String account, UUID customerId,
                                   TransactionType type,
@@ -314,11 +313,12 @@ public class TransactionServiceImpl implements TransactionService {
                     throw TransactionException.badRequest("Invalid category for DEBIT");
                 }
             }
-            case TRANSFER -> {
-                if (category != TransactionCategory.TRANSFER) {
-                    throw TransactionException.badRequest("TRANSFER must use TRANSFER category");
-                }
-            }
+//            new line
+//            case TRANSFER -> {
+//                if (category != TransactionCategory.TRANSFER) {
+//                    throw TransactionException.badRequest("TRANSFER must use TRANSFER category");
+//                }
+//            }
         }
     }
 }

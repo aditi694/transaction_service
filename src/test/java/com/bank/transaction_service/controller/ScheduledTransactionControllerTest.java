@@ -1,301 +1,229 @@
 package com.bank.transaction_service.controller;
 
+import com.bank.transaction_service.dto.request.ScheduleTransactionRequest;
+import com.bank.transaction_service.dto.response.BaseResponse;
+import com.bank.transaction_service.dto.response.ScheduleTransactionResponse;
 import com.bank.transaction_service.entity.ScheduledTransaction;
 import com.bank.transaction_service.enums.Frequency;
 import com.bank.transaction_service.enums.ScheduledStatus;
-import com.bank.transaction_service.repository.ScheduledTransactionRepository;
+import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.security.AuthUser;
-import com.bank.transaction_service.security.JwtFilter;
-import com.bank.transaction_service.security.JwtUtil;
+import com.bank.transaction_service.repository.ScheduledTransactionRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ScheduledTransactionController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class ScheduledTransactionControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private JwtFilter jwtFilter;
-
-    @MockBean
+    @Mock
     private ScheduledTransactionRepository repository;
 
-    private void setAuth() {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    @InjectMocks
+    private ScheduledTransactionController controller;
+
+    private UUID customerId = UUID.randomUUID();
+
+    private void mockAuthenticatedUser() {
+        AuthUser user = mock(AuthUser.class);
+        lenient().when(user.getCustomerId()).thenReturn(customerId);
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(user);
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+
+        SecurityContextHolder.setContext(context);
     }
 
-    private ScheduledTransaction buildSchedule(UUID id) {
+    private ScheduledTransaction validSchedule(UUID id, ScheduledStatus status) {
         return ScheduledTransaction.builder()
                 .id(id)
-                .accountNumber("123456")
-                .amount(BigDecimal.valueOf(1000))
-                .frequency(Frequency.MONTHLY)
+                .accountNumber(customerId.toString())
+                .amount(BigDecimal.TEN)
+                .transactionType("DEBIT")
+                .frequency(Frequency.DAILY)
+                .startDate(LocalDate.now())
                 .nextExecutionDate(LocalDate.now())
-                .status(ScheduledStatus.ACTIVE)
-                .createdAt(LocalDateTime.now())
-                .executionCount(0)
+                .status(status)
                 .build();
     }
 
-    @Test
-    void schedule_success() throws Exception {
-        setAuth();
-        UUID id = UUID.randomUUID();
-        ScheduledTransaction response = buildSchedule(id);
-
-        when(repository.save(any())).thenReturn(response);
-
-        String json = """
-                {
-                  "accountNumber": "123456",
-                  "amount": 1000,
-                  "transactionType": "TRANSFER",
-                  "description": "Rent",
-                  "frequency": "MONTHLY",
-                  "startDate": "2026-01-01",
-                  "endDate": "2026-12-01"
-                }
-                """;
-
-        mockMvc.perform(post("/api/transactions/scheduled")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accountNumber").value("123456"))
-                .andExpect(jsonPath("$.data.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Scheduled transaction created successfully"));
-
-        verify(repository).save(any());
+    @AfterEach
+    void clear() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void mySchedules_success() throws Exception {
-        setAuth();
-        when(repository.findByAccountNumber(any()))
-                .thenReturn(List.of(buildSchedule(UUID.randomUUID())));
+    void testSchedule_Success() {
+        mockAuthenticatedUser();
+        ScheduleTransactionRequest request =
+                new ScheduleTransactionRequest(
+                        customerId.toString(),
+                        BigDecimal.TEN,
+                        "DEBIT",
+                        "DAILY",
+                        LocalDate.now(),
+                        null,
+                        "test"
+                );
 
-        mockMvc.perform(get("/api/transactions/scheduled"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Scheduled transactions fetched successfully"));
+        ScheduledTransaction saved =
+                validSchedule(UUID.randomUUID(), ScheduledStatus.ACTIVE);
 
-        verify(repository).findByAccountNumber(any());
+        when(repository.save(any())).thenReturn(saved);
+
+        ResponseEntity<BaseResponse<ScheduleTransactionResponse>> response =
+                controller.schedule(request);
+
+        Assertions.assertEquals("Scheduled transaction created successfully",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void mySchedules_empty() throws Exception {
-        setAuth();
-        when(repository.findByAccountNumber(any()))
+    void testSchedule_Unauthorized() {
+        SecurityContextHolder.clearContext();
+        Assertions.assertThrows(AccessDeniedException.class,
+                () -> controller.schedule(new ScheduleTransactionRequest()));
+    }
+
+    @Test
+    void testMySchedules_WithData() {
+        mockAuthenticatedUser();
+        when(repository.findByAccountNumber(customerId.toString()))
+                .thenReturn(List.of(validSchedule(UUID.randomUUID(), ScheduledStatus.ACTIVE)));
+
+        ResponseEntity<BaseResponse<List<ScheduledTransaction>>> response =
+                controller.mySchedules();
+
+        Assertions.assertEquals("Scheduled transactions fetched successfully",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+
+    @Test
+    void testMySchedules_Empty() {
+        mockAuthenticatedUser();
+        when(repository.findByAccountNumber(customerId.toString()))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/transactions/scheduled"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("No scheduled transactions found"));
+        ResponseEntity<BaseResponse<List<ScheduledTransaction>>> response =
+                controller.mySchedules();
+
+        Assertions.assertEquals("No scheduled transactions found",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void pause_success() throws Exception {
-        setAuth();
+    void testPause_Success() {
         UUID id = UUID.randomUUID();
-        ScheduledTransaction schedule = buildSchedule(id);
+        ScheduledTransaction schedule = validSchedule(id, ScheduledStatus.ACTIVE);
 
         when(repository.findById(id)).thenReturn(Optional.of(schedule));
         when(repository.save(any())).thenReturn(schedule);
 
-        mockMvc.perform(put("/api/transactions/scheduled/{id}/pause", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("PAUSED"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Scheduled transaction paused successfully"));
+        ResponseEntity<BaseResponse<ScheduleTransactionResponse>> response =
+                controller.pause(id);
 
-        verify(repository).save(any());
+        Assertions.assertEquals("Scheduled transaction paused successfully",
+                response.getBody().getResultInfo().getResultMsg());
     }
 
     @Test
-    void resume_success() throws Exception {
-        setAuth();
+    void testResume_Success() {
         UUID id = UUID.randomUUID();
-        ScheduledTransaction schedule = buildSchedule(id);
+        ScheduledTransaction schedule = validSchedule(id, ScheduledStatus.PAUSED);
 
         when(repository.findById(id)).thenReturn(Optional.of(schedule));
         when(repository.save(any())).thenReturn(schedule);
 
-        mockMvc.perform(put("/api/transactions/scheduled/{id}/resume", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Scheduled transaction resumed successfully"));
+        ResponseEntity<BaseResponse<ScheduleTransactionResponse>> response =
+                controller.resume(id);
 
-        verify(repository).save(any());
+        Assertions.assertEquals("Scheduled transaction resumed successfully",
+                response.getBody().getResultInfo().getResultMsg());
+    }
+    @Test
+    void testResume_NotFound() {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(TransactionException.class,
+                () -> controller.resume(id));
     }
 
     @Test
-    void cancel_success() throws Exception {
-        setAuth();
+    void testCancel_Success() {
         UUID id = UUID.randomUUID();
-        ScheduledTransaction schedule = buildSchedule(id);
+        ScheduledTransaction schedule = validSchedule(id, ScheduledStatus.ACTIVE);
 
         when(repository.findById(id)).thenReturn(Optional.of(schedule));
         when(repository.save(any())).thenReturn(schedule);
 
-        mockMvc.perform(delete("/api/transactions/scheduled/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Scheduled transaction cancelled successfully"));
+        ResponseEntity<BaseResponse<Void>> response =
+                controller.cancel(id);
 
-        verify(repository).save(any());
+        Assertions.assertEquals("Scheduled transaction cancelled successfully",
+                response.getBody().getResultInfo().getResultMsg());
     }
-
     @Test
-    void pause_notFound() throws Exception {
-        setAuth();
+    void testCancel_NotFound() {
         UUID id = UUID.randomUUID();
-
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        mockMvc.perform(put("/api/transactions/scheduled/{id}/pause", id))
-                .andExpect(status().isBadRequest());
+        Assertions.assertThrows(TransactionException.class,
+                () -> controller.cancel(id));
     }
+
     @Test
-    void resume_notFound() throws Exception {
-        setAuth();
+    void testPause_NotFound() {
         UUID id = UUID.randomUUID();
-
         when(repository.findById(id)).thenReturn(Optional.empty());
-
-        mockMvc.perform(put("/api/transactions/scheduled/{id}/resume", id))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Schedule not found"));
-
-        verify(repository).findById(id);
-        verify(repository, never()).save(any());
-    }
-    @Test
-    void cancel_notFound() throws Exception {
-        setAuth();
-        UUID id = UUID.randomUUID();
-
-        when(repository.findById(id)).thenReturn(Optional.empty());
-
-        mockMvc.perform(delete("/api/transactions/scheduled/{id}", id))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultInfo.resultMsg")
-                        .value("Schedule not found"));
-
-        verify(repository).findById(id);
-        verify(repository, never()).save(any());
+        Assertions.assertThrows(TransactionException.class, () -> controller.pause(id));
     }
 
     @Test
-    void schedule_unauthorized() throws Exception {
-        SecurityContextHolder.getContext().setAuthentication(null);
-        String json = """
-                {
-                  "accountNumber": "123456",
-                  "amount": 1000,
-                  "transactionType": "TRANSFER",
-                  "description": "Rent",
-                  "frequency": "MONTHLY",
-                  "startDate": "2026-01-01",
-                  "endDate": "2026-12-01"
-                }
-                """;
+    void testUnauthorized_NotAuthenticated() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(false);
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(context);
 
-        mockMvc.perform(post("/api/transactions/scheduled")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(repository);
+        Assertions.assertThrows(AccessDeniedException.class,
+                () -> controller.schedule(new ScheduleTransactionRequest()));
     }
+
     @Test
-    void schedule_notAuthenticated() throws Exception {
-        AuthUser user = new AuthUser(UUID.randomUUID(), "ROLE_CUSTOMER");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        user, null, user.getAuthorities());
+    void testUnauthorized_InvalidPrincipal() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("invalid");
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(context);
 
-        auth.setAuthenticated(false);
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        String json = """
-            {
-              "accountNumber": "123456",
-              "amount": 1000,
-              "transactionType": "TRANSFER",
-              "description": "Rent",
-              "frequency": "MONTHLY",
-              "startDate": "2026-01-01",
-              "endDate": "2026-12-01"
-            }
-            """;
-
-        mockMvc.perform(post("/api/transactions/scheduled")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(repository);
-    }
-    @Test
-    void schedule_wrongPrincipal() throws Exception {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        "stringUser", null, List.of());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        String json = """
-            {
-              "accountNumber": "123456",
-              "amount": 1000,
-              "transactionType": "TRANSFER",
-              "description": "Rent",
-              "frequency": "MONTHLY",
-              "startDate": "2026-01-01",
-              "endDate": "2026-12-01"
-            }
-            """;
-
-        mockMvc.perform(post("/api/transactions/scheduled")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isForbidden());
-
-        verifyNoInteractions(repository);
+        Assertions.assertThrows(AccessDeniedException.class,
+                () -> controller.schedule(new ScheduleTransactionRequest()));
     }
 
 }
