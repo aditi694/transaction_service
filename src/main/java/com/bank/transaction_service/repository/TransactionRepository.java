@@ -45,4 +45,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     List<Transaction> findByAccountNumberAndDate(
             @Param("accountNumber") String accountNumber,
             @Param("date") LocalDate date);
+
+    Optional<Transaction> findByTransactionIdAndCustomerId(
+            String transactionId,
+            UUID customerId
+    );
 }

@@ -53,7 +53,6 @@ class TransactionStatusListenerTest {
 
     @Test
     void handle_shouldUpdateTransactionAndBalance_whenSuccess() {
-
         Transaction tx = createTransaction("TX1");
 
         when(repo.findByTransactionId("TX1"))
@@ -73,7 +72,6 @@ class TransactionStatusListenerTest {
 
     @Test
     void handle_shouldUpdateTransactionWithoutBalance_whenFailed() {
-
         Transaction tx = createTransaction("TX2");
 
         when(repo.findByTransactionId("TX2"))

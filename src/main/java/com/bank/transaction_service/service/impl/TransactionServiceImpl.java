@@ -212,8 +212,12 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional(readOnly = true)
     public TransactionStatusResponse getStatus(String transactionId) {
 
-        Transaction tx = transactionRepo.findByTransactionId(transactionId)
-                .orElseThrow(() -> TransactionException.notFound("Transaction not found"));
+        AuthUser user = currentUser();
+
+        Transaction tx = transactionRepo
+                .findByTransactionIdAndCustomerId(transactionId, user.getCustomerId())
+                .orElseThrow(() ->
+                        TransactionException.notFound("Transaction not found"));
 
         return TransactionStatusResponse.builder()
                 .transactionId(tx.getTransactionId())
