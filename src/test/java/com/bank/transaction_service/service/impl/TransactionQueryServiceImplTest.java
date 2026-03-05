@@ -1,6 +1,6 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
+import com.bank.transaction_service.client.AccountClient;
 import com.bank.transaction_service.dto.response.MiniStatementResponse;
 import com.bank.transaction_service.dto.response.TransactionHistoryResponse;
 import com.bank.transaction_service.entity.Transaction;
@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;

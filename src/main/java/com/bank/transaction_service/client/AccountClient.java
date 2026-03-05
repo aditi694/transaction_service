@@ -1,4 +1,4 @@
-package com.bank.transaction_service.dto.client;
+package com.bank.transaction_service.client;
 
 import com.bank.transaction_service.dto.request.BalanceUpdateRequest;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @FeignClient(
         name = "account-service",
+        contextId = "transactionAccountClient",
         url = "${ACCOUNT_SERVICE_URL}",
         path = "/api/internal/accounts"
 )

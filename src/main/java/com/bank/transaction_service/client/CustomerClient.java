@@ -1,4 +1,4 @@
-package com.bank.transaction_service.dto.client;
+package com.bank.transaction_service.client;
 
 import com.bank.transaction_service.service.impl.BeneficiaryServiceImpl;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -8,6 +8,7 @@ import java.util.UUID;
 
 @FeignClient(
         name = "customer-service",
+        contextId = "transactionCustomerClient",
         url = "${CUSTOMER_SERVICE_URL}",
         path = "/api/internal/customers"
 )

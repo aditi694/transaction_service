@@ -1,6 +1,6 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
+import com.bank.transaction_service.client.AccountClient;
 import com.bank.transaction_service.entity.Transaction;
 import com.bank.transaction_service.entity.TransactionSaga;
 import com.bank.transaction_service.enums.*;

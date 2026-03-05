@@ -1,7 +1,7 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
-import com.bank.transaction_service.dto.client.CustomerClient;
+import com.bank.transaction_service.client.AccountClient;
+import com.bank.transaction_service.client.CustomerClient;
 import com.bank.transaction_service.dto.request.BeneficiaryRequest;
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.entity.Beneficiary;
@@ -16,9 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
-import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_PENDING_MSG;
-import static com.bank.transaction_service.util.AppConstants.BENEFICIARY_VERIFIED_MSG;
 
 @Slf4j
 @Service

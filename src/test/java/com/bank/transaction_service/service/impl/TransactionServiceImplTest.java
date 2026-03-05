@@ -1,6 +1,6 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
+import com.bank.transaction_service.client.AccountClient;
 import com.bank.transaction_service.dto.request.*;
 import com.bank.transaction_service.dto.response.*;
 import com.bank.transaction_service.entity.Transaction;
@@ -30,8 +30,6 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-
-import java.lang.reflect.Method;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
@@ -239,12 +237,10 @@ class TransactionServiceImplTest {
 
     @Test
     void getStatus_success() {
+
         Transaction tx = Transaction.builder()
                 .transactionId("TXN-123")
-                .amount(BigDecimal.valueOf(1000))
                 .status(TransactionStatus.SUCCESS)
-                .previousBalance(BigDecimal.valueOf(5000))
-                .currentBalance(BigDecimal.valueOf(6000))
                 .createdAt(LocalDateTime.now())
                 .completedAt(LocalDateTime.now())
                 .build();
@@ -252,8 +248,7 @@ class TransactionServiceImplTest {
         when(transactionRepo.findByTransactionId("TXN-123"))
                 .thenReturn(Optional.of(tx));
 
-        TransactionStatusResponse response =
-                service.getStatus("TXN-123");
+        TransactionStatusResponse response = service.getStatus("TXN-123");
 
         assertEquals("TXN-123", response.getTransactionId());
         assertEquals("SUCCESS", response.getStatus());
@@ -272,7 +267,6 @@ class TransactionServiceImplTest {
     void getStatus_failed_shouldReturnFailureMessage() {
         Transaction tx = Transaction.builder()
                 .transactionId("TXN-FAIL")
-                .amount(BigDecimal.valueOf(100))
                 .status(TransactionStatus.FAILED)
                 .createdAt(LocalDateTime.now())
                 .build();

@@ -5,12 +5,12 @@ import com.bank.transaction_service.enums.TransactionStatus;
 import com.bank.transaction_service.enums.TransactionType;
 import com.bank.transaction_service.kafka.event.TransactionStatusEvent;
 import com.bank.transaction_service.repository.TransactionRepository;
+import com.google.cloud.spring.pubsub.core.PubSubTemplate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class TransactionStatusProducerTest {
 
     @Mock
-    private KafkaTemplate<String, TransactionStatusEvent> kafkaTemplate;
+    private PubSubTemplate pubSubTemplate;
 
     @Mock
     private TransactionRepository transactionRepo;
@@ -49,8 +49,8 @@ class TransactionStatusProducerTest {
         producer.publishSuccess(tx);
 
         verify(transactionRepo).save(tx);
-        verify(kafkaTemplate)
-                .send(eq("transaction-status"), eq("TX123"), any(TransactionStatusEvent.class));
+        verify(pubSubTemplate)
+                .publish(eq("transaction-status"), any(TransactionStatusEvent.class));
     }
 
     @Test
@@ -60,7 +60,7 @@ class TransactionStatusProducerTest {
         producer.publishFailure(tx, "Insufficient balance");
 
         verify(transactionRepo).save(tx);
-        verify(kafkaTemplate)
-                .send(eq("transaction-status"), eq("TX123"), any(TransactionStatusEvent.class));
+        verify(pubSubTemplate)
+                .publish(eq("transaction-status"), any(TransactionStatusEvent.class));
     }
 }

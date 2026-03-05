@@ -8,8 +8,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-//@EnableDiscoveryClient
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.bank.transaction_service.client")
 @EnableScheduling
 public class TransactionServiceApplication {
 

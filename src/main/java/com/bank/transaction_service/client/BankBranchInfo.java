@@ -1,4 +1,4 @@
-package com.bank.transaction_service.dto.client;
+package com.bank.transaction_service.client;
 
 record BankBranchInfo(
         String bankName,

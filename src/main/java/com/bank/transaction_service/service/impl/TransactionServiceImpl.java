@@ -1,6 +1,6 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
+import com.bank.transaction_service.client.AccountClient;
 import com.bank.transaction_service.dto.request.*;
 import com.bank.transaction_service.dto.response.*;
 import com.bank.transaction_service.entity.Transaction;
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

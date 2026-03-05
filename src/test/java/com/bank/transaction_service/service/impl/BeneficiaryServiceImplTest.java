@@ -1,7 +1,7 @@
 package com.bank.transaction_service.service.impl;
 
-import com.bank.transaction_service.dto.client.AccountClient;
-import com.bank.transaction_service.dto.client.CustomerClient;
+import com.bank.transaction_service.client.AccountClient;
+import com.bank.transaction_service.client.CustomerClient;
 import com.bank.transaction_service.dto.request.BeneficiaryRequest;
 import com.bank.transaction_service.dto.response.BeneficiaryResponse;
 import com.bank.transaction_service.entity.Beneficiary;
