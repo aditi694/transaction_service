@@ -50,4 +50,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
             String transactionId,
             UUID customerId
     );
+
 }

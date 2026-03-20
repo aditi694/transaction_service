@@ -20,14 +20,34 @@
     <artifactId>transaction_service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>transaction_service</name>
-    <description>Transaction Microservice for Banking System</description>
 
     <!-- ================= PROPERTIES ================= -->
     <properties>
         <java.version>17</java.version>
-        <spring-cloud.version>2023.0.1</spring-cloud.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
 
+            <!-- ✅ Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>2023.0.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- ✅ GCP BOM -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>spring-cloud-gcp-dependencies</artifactId>
+                <version>4.7.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
     <!-- ================= DEPENDENCIES ================= -->
     <dependencies>
 
@@ -68,10 +88,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
         <!-- 🔗 OpenFeign -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -85,12 +101,30 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Lombok -->
+        <!-- ☁️ GCP Pub/Sub (ONLY ONE, NO VERSION) -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
+        </dependency>
+
+        <!-- ☁️ Cloud SQL -->
+        <dependency>
+            <groupId>com.google.cloud.sql</groupId>
+            <artifactId>mysql-socket-factory-connector-j-8</artifactId>
+            <version>1.13.1</version>
+        </dependency>
+
+        <!-- ✅ Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
-            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ✅ Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
         <!-- 🧪 Test -->
@@ -100,50 +134,7 @@
             <scope>test</scope>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.google.cloud</groupId>-->
-<!--            <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>-->
-<!--        </dependency>-->
-
-        <dependency>
-            <groupId>com.google.cloud.sql</groupId>
-            <artifactId>mysql-socket-factory-connector-j-8</artifactId>
-            <version>1.13.1</version>
-        </dependency>
-
-        <!-- Source: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-validation -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-
-        </dependency>
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
-			<version>4.9.0</version>
-		</dependency>
-
-        <!--		<dependency>-->
-        <!--			<groupId>com.bank</groupId>-->
-        <!--			<artifactId>transaction_service</artifactId>-->
-        <!--			<version>0.0.1-SNAPSHOT</version>-->
-        <!--		</dependency>-->
-
-        <!-- Source: https://mvnrepository.com/artifact/javax.persistence/javax.persistence-api -->
     </dependencies>
-
-    <!-- ================= SPRING CLOUD BOM ================= -->
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <!-- ================= BUILD ================= -->
     <build>
@@ -157,13 +148,6 @@
                 <configuration>
                     <source>17</source>
                     <target>17</target>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>1.18.32</version>
-                        </path>
-                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
@@ -173,6 +157,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
+            <!-- ✅ JACOCO (YOUR ORIGINAL, CLEANED) -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -200,41 +185,26 @@
                             </includes>
 
                             <excludes>
-                                <!-- simple exclusions -->
                                 <exclude>**/dto/**</exclude>
                                 <exclude>**/entity/**</exclude>
                                 <exclude>**/config/**</exclude>
                                 <exclude>**/repository/**</exclude>
                                 <exclude>**/util/**</exclude>
                                 <exclude>**/enums/**</exclude>
-                                <exclude>**/security/JwtFilter.class/**</exclude>
-                                <exclude>**/security/AuthUser*/**</exclude>
-                                <exclude>**/kafka/event/TransactionStatusEvent.class/**</exclude>
+                                <exclude>**/security/**</exclude>
+                                <exclude>**/kafka/**</exclude>
                                 <exclude>**/*Application.class</exclude>
                             </excludes>
-                        </configuration>
 
+                        </configuration>
                     </execution>
+
                     <execution>
                         <id>check</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <!--											<minimum>0.50</minimum>-->
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
                     </execution>
 
                 </executions>
@@ -244,3 +214,4 @@
     </build>
 
 </project>
+

@@ -4,7 +4,6 @@ import com.bank.transaction_service.enums.TransactionStatus;
 import com.bank.transaction_service.kafka.event.TransactionStatusEvent;
 import com.bank.transaction_service.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
