@@ -12,6 +12,7 @@ import com.bank.transaction_service.kafka.producer.TransactionStatusProducer;
 import com.bank.transaction_service.repository.TransactionLimitRepository;
 import com.bank.transaction_service.repository.TransactionRepository;
 import com.bank.transaction_service.security.AuthUser;
+import com.bank.transaction_service.service.StripeService;
 import com.bank.transaction_service.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,60 +36,121 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountClient accountClient;
     private final TransactionSagaService sagaService;
     private final TransactionStatusProducer statusProducer;
+    private final StripeService stripeService;
+//    @Override
+//    public CreditTransactionResponse credit(CreditTransactionRequest req) {
+//
+//        AuthUser user = currentUser();
+//        verifyOwnership(user.getCustomerId(), req.getAccountNumber());
+//
+//        validateCategory(TransactionType.CREDIT, req.getCategory());
+//
+//        String idempotencyKey = generateIdempotencyKey(
+//                req.getAccountNumber(),
+//                req.getAmount(),
+//                TransactionType.CREDIT,
+//                req.getCategory(),
+//                req.getDescription()
+//        );
+//
+//        transactionRepo.findByIdempotencyKey(idempotencyKey)
+//                .ifPresent(tx -> {
+//                    throw TransactionException.badRequest(
+//                            "Duplicate request. Transaction already exists: " + tx.getTransactionId()
+//                    );
+//                });
+//
+//        BigDecimal previousBalance =
+//                accountClient.getBalance(req.getAccountNumber());
+//
+//        Transaction tx = createTxn(
+//                req.getAccountNumber(),
+//                user.getCustomerId(),
+//                TransactionType.CREDIT,
+//                req.getAmount(),
+//                BigDecimal.ZERO
+//        );
+//
+//        tx.setCategory(req.getCategory());
+//        tx.setDescription(req.getDescription());
+//        tx.setPreviousBalance(previousBalance);
+//        tx.setIdempotencyKey(idempotencyKey);
+//
+//        transactionRepo.save(tx);
+//
+//        TransactionSaga saga = sagaService.start(tx);
+//        sagaService.processCredit(tx, saga);
+//
+//        return CreditTransactionResponse.builder()
+//                .success(true)
+//                .transactionId(tx.getTransactionId())
+//                .status(TransactionStatus.IN_PROGRESS.name())
+//                .message("Transaction initiated")
+//                .timestamp(LocalDateTime.now())
+//                .build();
+//    }
+@Override
+public CreditTransactionResponse credit(CreditTransactionRequest req) {
 
-    @Override
-    public CreditTransactionResponse credit(CreditTransactionRequest req) {
+    AuthUser user = currentUser();
+    verifyOwnership(user.getCustomerId(), req.getAccountNumber());
 
-        AuthUser user = currentUser();
-        verifyOwnership(user.getCustomerId(), req.getAccountNumber());
+    validateCategory(TransactionType.CREDIT, req.getCategory());
 
-        validateCategory(TransactionType.CREDIT, req.getCategory());
+    String idempotencyKey = generateIdempotencyKey(
+            req.getAccountNumber(),
+            req.getAmount(),
+            TransactionType.CREDIT,
+            req.getCategory(),
+            req.getDescription()
+    );
 
-        String idempotencyKey = generateIdempotencyKey(
-                req.getAccountNumber(),
-                req.getAmount(),
-                TransactionType.CREDIT,
-                req.getCategory(),
-                req.getDescription()
+    transactionRepo.findByIdempotencyKey(idempotencyKey)
+            .ifPresent(tx -> {
+                throw TransactionException.badRequest(
+                        "Duplicate request. Transaction already exists: " + tx.getTransactionId()
+                );
+            });
+
+    BigDecimal previousBalance =
+            accountClient.getBalance(req.getAccountNumber());
+
+    Transaction tx = createTxn(
+            req.getAccountNumber(),
+            user.getCustomerId(),
+            TransactionType.CREDIT,
+            req.getAmount(),
+            BigDecimal.ZERO
+    );
+
+    tx.setCategory(req.getCategory());
+    tx.setDescription(req.getDescription());
+    tx.setPreviousBalance(previousBalance);
+    tx.setIdempotencyKey(idempotencyKey);
+    tx.setStatus(TransactionStatus.IN_PROGRESS);
+
+    transactionRepo.save(tx);
+
+    try {
+        var session = stripeService.createSession(
+                tx.getTransactionId(),
+                req.getAmount().longValue(),
+                req.getAccountNumber()
         );
-
-        transactionRepo.findByIdempotencyKey(idempotencyKey)
-                .ifPresent(tx -> {
-                    throw TransactionException.badRequest(
-                            "Duplicate request. Transaction already exists: " + tx.getTransactionId()
-                    );
-                });
-
-        BigDecimal previousBalance =
-                accountClient.getBalance(req.getAccountNumber());
-
-        Transaction tx = createTxn(
-                req.getAccountNumber(),
-                user.getCustomerId(),
-                TransactionType.CREDIT,
-                req.getAmount(),
-                BigDecimal.ZERO
-        );
-
-        tx.setCategory(req.getCategory());
-        tx.setDescription(req.getDescription());
-        tx.setPreviousBalance(previousBalance);
-        tx.setIdempotencyKey(idempotencyKey);
-
-        transactionRepo.save(tx);
-
-        TransactionSaga saga = sagaService.start(tx);
-        sagaService.processCredit(tx, saga);
 
         return CreditTransactionResponse.builder()
                 .success(true)
                 .transactionId(tx.getTransactionId())
-                .status(TransactionStatus.IN_PROGRESS.name())
-                .message("Transaction initiated")
+                .status("PENDING_PAYMENT")
+                .message("Complete payment using Stripe")
                 .timestamp(LocalDateTime.now())
+                .checkoutUrl(session.getUrl())
                 .build();
-    }
 
+    } catch (Exception e) {
+        throw new RuntimeException("Stripe session creation failed");
+    }
+}
     @Override
     public DebitTransactionResponse debit(DebitTransactionRequest req) {
 

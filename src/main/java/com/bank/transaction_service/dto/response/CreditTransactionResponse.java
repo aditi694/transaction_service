@@ -17,4 +17,5 @@ public class CreditTransactionResponse {
     private String transactionId;
     private String status;
     private LocalDateTime timestamp;
+    private  String checkoutUrl;
 }
