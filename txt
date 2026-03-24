@@ -1,21 +1,21 @@
- mvn clean package -DskipTests
-
- docker build --no-cache -t transaction-service:prod .
+mvn clean package -DskipTests
+docker build --no-cache -t transaction-service:prod .
 
 docker tag transaction-service:prod asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod
-
- docker push asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod
-
- gcloud run deploy transaction-service \
- --image asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod \
- --region asia-south1 \
- --platform managed \
- --allow-unauthenticated \
- --add-cloudsql-instances payments-dev-488506:asia-south1:free-trial-first-project \
- --set-env-vars=SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/new_customer_db?cloudSqlInstance=payments-dev-488506:asia-south1:free-trial-first-project&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false",SPRING_DATASOURCE_USERNAME=customer_user,SPRING_DATASOURCE_PASSWORD=StrongPassword@123,ACCOUNT_SERVICE_URL=https://account-service-152621895558.asia-south1.run.app,CUSTOMER_SERVICE_URL=https://customer-service-152621895558.asia-south1.run.app,PAYMENT_SERVICE_URL=https://payment-service-152621895558.asia-south1.run.app,STRIPE_SECRET_KEY=sk_test_51TCwbTG0olpwnEpinS5hj7y6cSBBHbN8hFyvh29ytN4bkhKdAcUs2Q2WTgMGtHv0mgO8cs4i0bpGjPJTsOd4DGe300lVXmteKE,STRIPE_WEBHOOK_SECRET=whsec_5d9f22d9d96f65182b368bbe57236bfe93299517b38de1fb4d5389f46b7ecfcd,SPRING_PROFILES_ACTIVE=prod
+docker push asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod
+gcloud run deploy transaction-service \
+--image asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod \
+--region asia-south1 \
+--platform managed \
+--allow-unauthenticated \
+--add-cloudsql-instances payments-dev-488506:asia-south1:free-trial-first-project \
+--set-env-vars=SPRING_DATASOURCE_URL=jdbc:mysql://google/new_customer_db?cloudSqlInstance=payments-dev-488506:asia-south1:free-trial-first-project\&socketFactory=com.google.cloud.sql.mysql.SocketFactory\&useSSL=false \
+--set-env-vars=SPRING_DATASOURCE_USERNAME=customer_user \
+--set-env-vars=SPRING_DATASOURCE_PASSWORD=StrongPassword@123 \
+--set-env-vars=SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver \
+--set-env-vars=ACCOUNT_SERVICE_URL=https://account-service-152621895558.asia-south1.run.app \
+--set-env-vars=CUSTOMER_SERVICE_URL=https://customer-service-152621895558.asia-south1.run.app \
+--set-env-vars=STRIPE_SECRET_KEY=sk_test_51TCwbTG0olpwnEpinS5hj7y6cSBBHbN8hFyvh29ytN4bkhKdAcUs2Q2WTgMGtHv0mgO8cs4i0bpGjPJTsOd4DGe300lVXmteKE \
+--set-env-vars=STRIPE_WEBHOOK_SECRET=whsec_5d9f22d9d96f65182b368bbe57236bfe93299517b38de1fb4d5389f46b7ecfcd
 
 stripe listen --forward-to https://transaction-service-152621895558.asia-south1.run.app/webhook
-
-
-
- gcloud run deploy transaction-service --image asia-south1-docker.pkg.dev/payments-dev-488506/banking-repo/transaction-service:prod --region asia-south1 --allow-unauthenticated --add-cloudsql-instances payments-dev-488506:asia-south1:free-trial-first-project --set-env-vars SPRING_DATASOURCE_URL="jdbc:mysql://localhost/new_customer_db?socketFactory=com.google.cloud.sql.mysql.SocketFactory&cloudSqlInstance=payments-dev-488506:asia-south1:free-trial-first-project&useSSL=false",SPRING_DATASOURCE_USERNAME=customer_user,SPRING_DATASOURCE_PASSWORD=StrongPassword@123,ACCOUNT_SERVICE_URL=https://account-service-152621895558.asia-south1.run.app,CUSTOMER_SERVICE_URL=https://customer-service-152621895558.asia-south1.run.app

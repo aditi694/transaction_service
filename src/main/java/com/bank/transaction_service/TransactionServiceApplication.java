@@ -7,13 +7,12 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+//@SpringBootApplication
 @EnableFeignClients(basePackages = "com.bank.transaction_service.client")
 @EnableScheduling
+@SpringBootApplication(scanBasePackages = "com.bank")
 public class TransactionServiceApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(TransactionServiceApplication.class, args);
 	}
-
 }

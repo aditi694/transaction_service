@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/stripe")
 @RequiredArgsConstructor
 public class StripeWebhookController {
 
@@ -28,41 +27,61 @@ public class StripeWebhookController {
     public void handleWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader
-    ) throws Exception {
+    ) {
 
-        Event event;
+        System.out.println("WEBHOOK RECEIVED");
 
         try {
-            event = com.stripe.net.Webhook.constructEvent(
+            Event event = com.stripe.net.Webhook.constructEvent(
                     payload,
                     sigHeader,
                     webhookSecret
             );
+
+            System.out.println(" Event Type: " + event.getType());
+
+            if ("checkout.session.completed".equals(event.getType())) {
+
+                Session session = (Session) event.getDataObjectDeserializer()
+                        .getObject()
+                        .orElse(null);
+
+                if (session == null) {
+                    System.out.println("❌ Session is null");
+                    return;
+                }
+
+                String paymentIntentId = session.getPaymentIntent();
+                System.out.println("💳 PaymentIntent: " + paymentIntentId);
+
+                PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+
+                Map<String, String> metadata = intent.getMetadata();
+                String txnId = metadata.get("transaction_id");
+
+                System.out.println("🧾 TXN ID: " + txnId);
+
+                Transaction tx = transactionRepository.findById(txnId).orElse(null);
+
+                if (tx == null) {
+                    System.out.println("❌ Transaction NOT FOUND");
+                    return;
+                }
+
+                System.out.println("✅ Transaction FOUND");
+
+                TransactionSaga saga = sagaService.start(tx);
+
+                System.out.println("🚀 Starting CREDIT...");
+
+                sagaService.processCredit(tx, saga);
+
+                System.out.println("✅ CREDIT DONE");
+            }
+
         } catch (Exception e) {
-            throw new RuntimeException("Invalid Stripe signature");
-        }
-
-        if ("checkout.session.completed".equals(event.getType())) {
-
-            Session session = (Session) event.getDataObjectDeserializer()
-                    .getObject()
-                    .orElse(null);
-
-            if (session == null) return;
-
-            String paymentIntentId = session.getPaymentIntent();
-
-            PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
-
-            Map<String, String> metadata = intent.getMetadata();
-
-            String txnId = metadata.get("transaction_id");
-
-            Transaction tx = transactionRepository.findById(txnId).orElse(null);
-            if (tx == null) return;
-
-            TransactionSaga saga = sagaService.start(tx);
-            sagaService.processCredit(tx, saga);
+            System.out.println("❌ WEBHOOK ERROR:");
+            e.printStackTrace();
         }
     }
 }
