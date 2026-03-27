@@ -27,18 +27,9 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain chain
     ) throws ServletException, IOException {
 
-        String path = request.getServletPath();
+        String path = request.getRequestURI();
 
-        if (
-                path.equals("") ||
-                        path.equals("/") ||
-                        path.startsWith("/health") ||
-                        path.startsWith("/error") ||
-                        path.startsWith("/webhook") ||
-                        path.startsWith("/success") ||
-                        path.startsWith("/cancel") ||
-                        path.startsWith("/api/internal")
-        ) {
+        if (path.startsWith("/api/internal/")) {
             chain.doFilter(request, response);
             return;
         }
@@ -50,7 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 String token = header.substring(7);
                 Claims claims = jwtUtil.parse(token);
 
-                UUID customerId = UUID.fromString(claims.get("customerId", String.class));
+                UUID customerId =
+                        UUID.fromString(claims.get("customerId", String.class));
 
                 String role = claims.get("role", String.class);
                 if (!role.startsWith("ROLE_")) {
@@ -69,7 +61,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (Exception e) {
-                SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Invalid token\"}");
+                return;
             }
         }
 

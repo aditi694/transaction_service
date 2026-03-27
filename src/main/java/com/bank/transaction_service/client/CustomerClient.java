@@ -7,9 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @FeignClient(
-        name = "customer-service",
-        contextId = "transactionCustomerClient",
-        url = "${CUSTOMER_SERVICE_URL}",
+        name = "CUSTOMER-SERVICE",
         path = "/api/internal/customers"
 )
 public interface CustomerClient {

@@ -101,18 +101,20 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- ☁️ GCP Pub/Sub (ONLY ONE, NO VERSION) -->
+<!--
+        &lt;!&ndash; ☁️ GCP Pub/Sub (ONLY ONE, NO VERSION) &ndash;&gt;
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
         </dependency>
+-->
 
-        <!-- ☁️ Cloud SQL -->
-        <dependency>
-            <groupId>com.google.cloud.sql</groupId>
-            <artifactId>mysql-socket-factory-connector-j-8</artifactId>
-            <version>1.13.1</version>
-        </dependency>
+<!--        &lt;!&ndash; ☁️ Cloud SQL &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.google.cloud.sql</groupId>-->
+<!--            <artifactId>mysql-socket-factory-connector-j-8</artifactId>-->
+<!--            <version>1.13.1</version>-->
+<!--        </dependency>-->
 
         <!-- ✅ Lombok -->
         <dependency>
@@ -141,6 +143,14 @@
             <version>24.21.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
     </dependencies>
 
     <!-- ================= BUILD ================= -->

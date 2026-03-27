@@ -8,9 +8,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @FeignClient(
-        name = "account-service",
-        contextId = "transactionAccountClient",
-        url = "${ACCOUNT_SERVICE_URL}",
+        name = "ACCOUNT-SERVICE",
         path = "/api/internal/accounts"
 )
 public interface AccountClient {

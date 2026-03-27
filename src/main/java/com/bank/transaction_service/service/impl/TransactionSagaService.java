@@ -8,7 +8,6 @@ import com.bank.transaction_service.enums.SagaStep;
 import com.bank.transaction_service.enums.TransactionStatus;
 import com.bank.transaction_service.enums.TransactionType;
 import com.bank.transaction_service.kafka.producer.TransactionStatusProducer;
-import com.bank.transaction_service.repository.TransactionRepository;
 import com.bank.transaction_service.repository.TransactionSagaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ public class TransactionSagaService {
     private final TransactionSagaRepository sagaRepo;
     private final AccountClient accountClient;
     private final TransactionStatusProducer statusProducer;
-    private final TransactionRepository transactionRepository;
+
     public TransactionSaga start(Transaction tx) {
         BigDecimal sagaAmount =
                 tx.getTotalAmount() != null
@@ -55,27 +54,14 @@ public class TransactionSagaService {
 
     public void processCredit(Transaction tx, TransactionSaga saga) {
         try {
-            log.info("CREDIT STARTED: txn={}, account={}, amount={}",
-                    tx.getTransactionId(),
-                    tx.getAccountNumber(),
-                    tx.getAmount());
-
             saga.setCurrentStep(SagaStep.CREDIT);
             sagaRepo.save(saga);
 
-            log.info("Calling account service...");
-
             accountClient.credit(tx.getAccountNumber(), tx.getAmount());
-
-            log.info("Account credited successfully");
 
             sagaSuccess(tx, saga);
 
         } catch (Exception ex) {
-            log.error("CREDIT FAILED for txn={} reason={}",
-                    tx.getTransactionId(),
-                    ex.getMessage(), ex);
-
             sagaFailure(tx, saga, ex);
         }
     }
@@ -113,60 +99,33 @@ public class TransactionSagaService {
         }
     }
 
-//    private void sagaSuccess(Transaction tx, TransactionSaga saga) {
-//
-//        BigDecimal currentBalance =
-//                tx.getTransactionType() == TransactionType.TRANSFER
-//                        ? accountClient.getBalance(tx.getAccountNumber())
-//                        : accountClient.getBalance(tx.getAccountNumber());
-//
-//        tx.setCurrentBalance(currentBalance);
-//        tx.setStatus(TransactionStatus.SUCCESS);
-//        tx.setCompletedAt(LocalDateTime.now());
-//
-//        saga.setStatus(SagaStatus.COMPLETED);
-//        saga.setCurrentStep(SagaStep.COMPLETED);
-//        saga.setUpdatedAt(LocalDateTime.now());
-//
-//        sagaRepo.save(saga);
-//
-//        statusProducer.publishSuccess(tx);
-//    }
-
     private void sagaSuccess(Transaction tx, TransactionSaga saga) {
+
         BigDecimal currentBalance =
-                accountClient.getBalance(tx.getAccountNumber());
+                tx.getTransactionType() == TransactionType.TRANSFER
+                        ? accountClient.getBalance(tx.getAccountNumber())
+                        : accountClient.getBalance(tx.getAccountNumber());
+
         tx.setCurrentBalance(currentBalance);
         tx.setStatus(TransactionStatus.SUCCESS);
         tx.setCompletedAt(LocalDateTime.now());
-        transactionRepository.save(tx);
+
         saga.setStatus(SagaStatus.COMPLETED);
         saga.setCurrentStep(SagaStep.COMPLETED);
         saga.setUpdatedAt(LocalDateTime.now());
 
         sagaRepo.save(saga);
+
         statusProducer.publishSuccess(tx);
     }
-//    private void sagaFailure(Transaction tx, TransactionSaga saga, Exception ex) {
-//        saga.setStatus(SagaStatus.FAILED);
-//        saga.setCurrentStep(SagaStep.FAILED);
-//        saga.setFailureReason(ex.getMessage());
-//        saga.setUpdatedAt(LocalDateTime.now());
-//        sagaRepo.save(saga);
-//
-//        statusProducer.publishFailure(tx, ex.getMessage());
-//    }
-private void sagaFailure(Transaction tx, TransactionSaga saga, Exception ex) {
-        tx.setStatus(TransactionStatus.FAILED);
-    tx.setFailureReason(ex.getMessage());
-    tx.setCompletedAt(LocalDateTime.now());
-    transactionRepository.save(tx);
-    saga.setStatus(SagaStatus.FAILED);
-    saga.setCurrentStep(SagaStep.FAILED);
-    saga.setFailureReason(ex.getMessage());
-    saga.setUpdatedAt(LocalDateTime.now());
 
-    sagaRepo.save(saga);
-    statusProducer.publishFailure(tx, ex.getMessage());
-}
+    private void sagaFailure(Transaction tx, TransactionSaga saga, Exception ex) {
+        saga.setStatus(SagaStatus.FAILED);
+        saga.setCurrentStep(SagaStep.FAILED);
+        saga.setFailureReason(ex.getMessage());
+        saga.setUpdatedAt(LocalDateTime.now());
+        sagaRepo.save(saga);
+
+        statusProducer.publishFailure(tx, ex.getMessage());
+    }
 }
