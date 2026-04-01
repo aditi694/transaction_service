@@ -8,7 +8,6 @@ import java.util.UUID;
 @Data
 public class BeneficiaryRequest {
 
-    @NotBlank(message = "Customer ID is required")
     private String customerId;
 
     @NotBlank(message = "Account number is required")
