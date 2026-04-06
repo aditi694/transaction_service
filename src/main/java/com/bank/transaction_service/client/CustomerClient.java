@@ -20,4 +20,7 @@ public interface CustomerClient {
 
     @GetMapping("/bank-branch/{ifscCode}")
     BeneficiaryServiceImpl.BankBranchInfo getBankBranch(@PathVariable String ifscCode);
+
+    @GetMapping("/email")
+    String getEmail(@RequestParam UUID customerId);
 }

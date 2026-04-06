@@ -4,8 +4,10 @@ import com.bank.transaction_service.dto.response.BaseResponse;
 import com.bank.transaction_service.dto.response.MiniStatementResponse;
 import com.bank.transaction_service.dto.response.TransactionHistoryResponse;
 import com.bank.transaction_service.security.AuthUser;
+import com.bank.transaction_service.service.PdfService;
 import com.bank.transaction_service.service.TransactionQueryService;
 import com.bank.transaction_service.util.AppConstants;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionQueryController {
 
     private final TransactionQueryService queryService;
+    private final PdfService pdfService;
 
     @GetMapping("/transactions")
     public ResponseEntity<BaseResponse<TransactionHistoryResponse>> history(
@@ -54,6 +57,21 @@ public class TransactionQueryController {
                         "Mini statement generated successfully"
                 )
         );
+    }
+
+    @GetMapping("/transactions/pdf")
+    public void downloadPdf(
+            @RequestParam("account_number") String accountNumber,
+            @RequestParam String from,
+            @RequestParam String to,
+            HttpServletResponse response
+    ) {
+        getAuthUser(); // auth check
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=statement.pdf");
+
+        pdfService.generateTransactionPdf(accountNumber, from, to, response);
     }
 
     private AuthUser getAuthUser() {

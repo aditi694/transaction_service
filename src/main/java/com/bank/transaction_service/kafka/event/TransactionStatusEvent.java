@@ -11,5 +11,6 @@ public record TransactionStatusEvent(
         String finalStatus,
         String failureReason,
         LocalDateTime createdAt,
-        LocalDateTime completedAt
+        LocalDateTime completedAt,
+        String email
 ) {}
