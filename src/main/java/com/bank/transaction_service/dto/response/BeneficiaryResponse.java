@@ -22,14 +22,14 @@ public class BeneficiaryResponse {
     private boolean active;
     private String verificationStatus; // PENDING, VERIFIED, REJECTED
     private LocalDateTime createdAt;
-
+    private String customerId;
 
     public static BeneficiaryResponse from(Beneficiary entity) {
 
         String status =
                 !entity.isActive() ? "REJECTED"
                         : entity.isVerified() ? "VERIFIED"
-                        : "PENDING";
+                          : "PENDING";
 
         return BeneficiaryResponse.builder()
                 .beneficiaryId(entity.getBeneficiaryId())
@@ -41,6 +41,7 @@ public class BeneficiaryResponse {
                 .active(entity.isActive())
                 .verificationStatus(status)
                 .createdAt(entity.getCreatedAt())
+                .customerId(entity.getCustomerId())
                 .build();
     }
 }

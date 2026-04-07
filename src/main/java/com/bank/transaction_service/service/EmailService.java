@@ -5,4 +5,5 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 public interface EmailService {
     void sendTransactionEmail(String to, String subject, String body);
+    void sendEmailWithAttachment(String to, String subject, String body, byte[] pdf);
 }

@@ -23,4 +23,13 @@ public interface CustomerClient {
 
     @GetMapping("/email")
     String getEmail(@RequestParam UUID customerId);
+
+    @GetMapping("/{customerId}/name")
+    String getCustomerName(@PathVariable UUID customerId);
+
+    @GetMapping("/account/{accountNumber}/name")
+    String getCustomerNameByAccount(@PathVariable String accountNumber);
+
+    @GetMapping("/account/{accountNumber}/email")
+    String getEmailByAccount(@PathVariable String accountNumber);
 }

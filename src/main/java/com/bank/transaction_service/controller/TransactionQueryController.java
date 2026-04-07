@@ -30,10 +30,8 @@ public class TransactionQueryController {
             @RequestParam(defaultValue = "1") int page
     ) {
         getAuthUser();
-
         TransactionHistoryResponse response =
                 queryService.getHistory(accountNumber, limit, page);
-
         return ResponseEntity.ok(
                 BaseResponse.success(
                         response,
@@ -46,11 +44,9 @@ public class TransactionQueryController {
     public ResponseEntity<BaseResponse<MiniStatementResponse>> miniStatement(
             @RequestParam("account_number") String accountNumber
     ) {
-        getAuthUser(); // authentication check only
-
+        getAuthUser();
         MiniStatementResponse response =
                 queryService.miniStatement(accountNumber);
-
         return ResponseEntity.ok(
                 BaseResponse.success(
                         response,
@@ -66,25 +62,32 @@ public class TransactionQueryController {
             @RequestParam String to,
             HttpServletResponse response
     ) {
-        getAuthUser(); // auth check
-
+        getAuthUser();
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "attachment; filename=statement.pdf");
-
         pdfService.generateTransactionPdf(accountNumber, from, to, response);
+    }
+
+    @GetMapping("/transactions/pdf/email")
+    public ResponseEntity<String> sendPdfToEmail(
+            @RequestParam("account_number") String accountNumber,
+            @RequestParam String from,
+            @RequestParam String to
+    ) {
+        AuthUser user = getAuthUser();
+        pdfService.sendPdfToEmail(accountNumber, from, to, user.getCustomerId());
+        return ResponseEntity.ok("PDF sent successfully");
     }
 
     private AuthUser getAuthUser() {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication == null ||
                 !authentication.isAuthenticated() ||
                 !(authentication.getPrincipal() instanceof AuthUser)) {
 
             throw new AccessDeniedException(AppConstants.UNAUTHORIZED);
         }
-
         return (AuthUser) authentication.getPrincipal();
     }
 }
