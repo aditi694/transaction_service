@@ -48,7 +48,6 @@ public class PdfServiceImpl implements PdfService {
             throw new RuntimeException("Error generating PDF", e);
         }
     }
-
     // ================= EMAIL =================
     @Override
     public void sendPdfToEmail(String accountNumber,
