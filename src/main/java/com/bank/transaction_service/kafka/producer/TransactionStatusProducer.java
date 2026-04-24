@@ -34,7 +34,9 @@ public class TransactionStatusProducer {
                         null,
                         tx.getCreatedAt(),
                         tx.getCompletedAt(),
-                        email
+                        email,
+                        tx.getCustomerId(),
+                        "TRANSACTION_SUCCESS"
                 );
 
         kafkaTemplate.send("transaction-status", tx.getTransactionId(), event);
@@ -57,7 +59,9 @@ public class TransactionStatusProducer {
                         reason,
                         tx.getCreatedAt(),
                         tx.getCompletedAt(),
-                        email
+                        email,
+                        tx.getCustomerId(),
+                        "TRANSACTION_FAILED"
                 );
 
         kafkaTemplate.send("transaction-status", tx.getTransactionId(), event);

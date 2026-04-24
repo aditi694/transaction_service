@@ -149,9 +149,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         AuthUser user = currentUser();
         verifyOwnership(user.getCustomerId(), req.getFromAccount());
-        //new line
-//        validateCategory(TransactionType.TRANSFER, TransactionCategory.TRANSFER);
-        String idempotencyKey = generateIdempotencyKey(
+       String idempotencyKey = generateIdempotencyKey(
                 req.getFromAccount(),
                 req.getAmount(),
                 TransactionType.TRANSFER,
@@ -316,12 +314,6 @@ public class TransactionServiceImpl implements TransactionService {
                     throw TransactionException.badRequest("Invalid category for DEBIT");
                 }
             }
-//            new line
-//            case TRANSFER -> {
-//                if (category != TransactionCategory.TRANSFER) {
-//                    throw TransactionException.badRequest("TRANSFER must use TRANSFER category");
-//                }
-//            }
         }
     }
 }

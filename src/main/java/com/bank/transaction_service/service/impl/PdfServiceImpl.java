@@ -30,7 +30,7 @@ public class PdfServiceImpl implements PdfService {
     private final CustomerClient customerClient;
     private final EmailService emailService;
     private final AccountClient accountClient;
-
+    private final NotificationServiceImpl notificationService;
 
     @Override
     public void generateTransactionPdf(String accountNumber,
@@ -91,6 +91,11 @@ public class PdfServiceImpl implements PdfService {
                     "Your Bank Statement",
                     body,
                     out.toByteArray()
+            );
+            notificationService.createNotification(
+                    customerId,
+                    "Your account statement has been sent to your email",
+                    "STATEMENT"
             );
 
         } catch (Exception e) {

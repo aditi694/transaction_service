@@ -8,6 +8,7 @@ import com.bank.transaction_service.entity.Beneficiary;
 import com.bank.transaction_service.exception.TransactionException;
 import com.bank.transaction_service.repository.BeneficiaryRepository;
 import com.bank.transaction_service.service.BeneficiaryService;
+import com.bank.transaction_service.service.NotificationService;
 import com.bank.transaction_service.validation.TransactionValidator;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -25,6 +27,7 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
     private final BeneficiaryRepository repository;
     private final AccountClient accountClient;
     private final CustomerClient customerClient;
+    private final NotificationService notificationService;
 
     @Override
     public BeneficiaryResponse add(BeneficiaryRequest req) {
@@ -79,11 +82,19 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
                 .build();
 
         repository.save(entity);
-
-//        BeneficiaryResponse response = BeneficiaryResponse.from(entity);
-//        response.setMessage(autoVerified ? BENEFICIARY_VERIFIED_MSG : BENEFICIARY_PENDING_MSG);
-//        response.setStatusMessage(autoVerified ? "VERIFIED" : "PENDING_VERIFICATION");
-
+        if (entity.isVerified()) {
+            notificationService.createNotification(
+                    UUID.fromString(entity.getCustomerId()),
+                    "Beneficiary added and verified successfully",
+                    "BENEFICIARY"
+            );
+        } else {
+            notificationService.createNotification(
+                    UUID.fromString(entity.getCustomerId()),
+                    "Beneficiary added. Awaiting admin approval",
+                    "BENEFICIARY"
+            );
+        }
         return BeneficiaryResponse.from(entity);
     }
 
@@ -121,6 +132,11 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         repository.save(b);
 
         log.info("Beneficiary verified: {}", beneficiaryId);
+        notificationService.createNotification(
+                UUID.fromString(b.getCustomerId()),
+                "Beneficiary verified by admin successfully",
+                "BENEFICIARY"
+        );
     }
 
     @Override
@@ -133,6 +149,11 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         b.setUpdatedAt(LocalDateTime.now());
         repository.save(b);
         log.info("Beneficiary rejected: {}", beneficiaryId);
+        notificationService.createNotification(
+                UUID.fromString(b.getCustomerId()),
+                "Beneficiary request rejected by admin",
+                "BENEFICIARY"
+        );
     }
 
     @Override
